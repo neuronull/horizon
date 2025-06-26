@@ -1,4 +1,4 @@
-# weather.dev
+# horizon
 
 A WIP weather visualization app built with [egui](https://github.com/emilk/egui).
 

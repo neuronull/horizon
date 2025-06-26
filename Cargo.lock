@@ -986,6 +986,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "horizon"
+version = "0.1.0"
+dependencies = [
+ "eframe",
+ "egui",
+ "env_logger",
+ "log",
+ "serde",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "icu_collections"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2586,19 +2599,6 @@ dependencies = [
  "log",
  "once_cell",
  "pkg-config",
-]
-
-[[package]]
-name = "weather-dev"
-version = "0.1.0"
-dependencies = [
- "eframe",
- "egui",
- "env_logger",
- "log",
- "serde",
- "wasm-bindgen-futures",
- "web-sys",
 ]
 
 [[package]]

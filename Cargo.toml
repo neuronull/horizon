@@ -1,5 +1,5 @@
 [package]
-name = "weather-dev"
+name = "horizon"
 version = "0.1.0"
 authors = ["neuronull"]
 edition = "2021"

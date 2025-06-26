@@ -12,8 +12,8 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
     eframe::run_native(
-        weather_dev::APP_NAME,
+        horizon::APP_NAME,
         native_options,
-        Box::new(|cc| Ok(Box::new(weather_dev::WeatherApp::new(cc)))),
+        Box::new(|cc| Ok(Box::new(horizon::WeatherApp::new(cc)))),
     )
 }
