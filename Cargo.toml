@@ -4,9 +4,30 @@ version = "0.1.0"
 authors = ["neuronull"]
 edition = "2021"
 rust-version = "1.81"
+build = "build.rs"
 publish = false
 
+[profile.release]
+opt-level = 2 # fast and small wasm
+
+# Optimize all dependencies even in debug builds:
+[profile.dev.package."*"]
+opt-level = 2
+
+[workspace]
+members = [
+    "lib/weather",
+]
+
+[workspace.dependencies]
+serde = { version = "1.0.219", features = ["derive"] }
+
 [dependencies]
+
+# internal
+lib-weather = { path = "lib/weather" }
+
+# external
 egui = "0.31"
 eframe = { version = "0.31", default-features = false, features = [
     "default_fonts", # Embed the default egui fonts.
@@ -16,8 +37,10 @@ eframe = { version = "0.31", default-features = false, features = [
     "x11",           # To support older Linux distributions (restores one of the default features)
 ] }
 log = "0.4.27"
+tokio = { version = "1.45.1", features = ["rt-multi-thread"] }
 
-serde = { version = "1.0.219", features = ["derive"] }
+# workspace
+serde.workspace = true
 
 # native
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -27,10 +50,3 @@ env_logger = "0.11.8"
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4.50"
 web-sys = "0.3.70"              # to access the DOM (to hide the loading text)
-
-[profile.release]
-opt-level = 2 # fast and small wasm
-
-# Optimize all dependencies even in debug builds:
-[profile.dev.package."*"]
-opt-level = 2

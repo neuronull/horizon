@@ -1,0 +1,11 @@
+[package]
+name = "lib-weather"
+version = "0.1.0"
+authors = ["neuronull"]
+edition = "2021"
+rust-version = "1.81"
+publish = false
+
+[dependencies]
+reqwest = { version = "0.12", features = ["json"] }
+serde.workspace = true
