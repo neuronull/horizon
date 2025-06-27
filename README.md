@@ -1,6 +1,14 @@
 # horizon
 
-A WIP weather visualization app built with [egui](https://github.com/emilk/egui).
+A WIP weather visualization app.
+
+:pushpin: See the [project roadmap](ROADMAP.md) for planned features and milestones.
+
+:art: Built with [egui](https://github.com/emilk/egui)
+
+:zap: powered by [OpenWeatherMap](https://openweathermap.org/)
+
+:rocket: deployed via [GitHub Pages](https://pages.github.com/).
 
 ## Dependencies
 
