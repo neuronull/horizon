@@ -2,16 +2,22 @@ use serde::{Deserialize, Serialize};
 use tokio::runtime::Runtime;
 
 use eframe::{CreationContext, Frame};
-use egui::Context;
+use egui::{Context, Label, TextEdit};
 
 use lib_weather::fetch_forecast;
 
 #[derive(Deserialize, Serialize)]
-pub struct WeatherApp {}
+pub struct WeatherApp {
+    latitude: String,
+    longitude: String,
+}
 
 impl Default for WeatherApp {
     fn default() -> Self {
-        Self {}
+        Self {
+            latitude: Default::default(),
+            longitude: Default::default(),
+        }
     }
 }
 
@@ -37,12 +43,35 @@ impl eframe::App for WeatherApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         egui::SidePanel::right("right_panel")
             .resizable(false)
-            .default_width(150.0)
+            .default_width(100.0)
+            .min_width(100.0)
             .show(ctx, |ui| {
                 ui.vertical_centered(|ui| {
                     ui.heading("Location");
                 });
                 ui.separator();
+
+                egui::Grid::new("location_grid")
+                    .num_columns(2)
+                    .spacing([40.0, 4.0])
+                    .striped(true)
+                    .show(ui, |ui| {
+                        ui.add(Label::new("Latitude: "));
+                        let latitide_response =
+                            ui.add(TextEdit::singleline(&mut self.latitude).hint_text("37.233"));
+                        if latitide_response.changed() {
+                            //
+                        }
+                        ui.end_row();
+                        ui.add(Label::new("Longitude: "));
+                        let longitude_response =
+                            ui.add(TextEdit::singleline(&mut self.longitude).hint_text("-115.800"));
+                        if longitude_response.changed() {
+                            //
+                        }
+                        ui.end_row();
+                    });
+
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     if ui.button("Fetch").clicked() {
                         let rt = Runtime::new().unwrap();
@@ -56,10 +85,12 @@ impl eframe::App for WeatherApp {
                         }
                     }
                 });
+                ui.separator();
+                // widget toggle area
             });
 
         egui::CentralPanel::default().show(ctx, |_ui| {
-            // widgets
+            // widget display area
         });
     }
 }
