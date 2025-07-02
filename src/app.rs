@@ -57,12 +57,16 @@ impl eframe::App for WeatherApp {
                     .striped(true)
                     .show(ui, |ui| {
                         ui.add(Label::new("Latitude: "));
-                        let latitide_response =
+
+                        // latitude
+                        let latitude_response =
                             ui.add(TextEdit::singleline(&mut self.latitude).hint_text("37.233"));
-                        if latitide_response.changed() {
+                        if latitude_response.changed() {
                             //
                         }
                         ui.end_row();
+
+                        // longitude
                         ui.add(Label::new("Longitude: "));
                         let longitude_response =
                             ui.add(TextEdit::singleline(&mut self.longitude).hint_text("-115.800"));
@@ -74,13 +78,20 @@ impl eframe::App for WeatherApp {
 
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     if ui.button("Fetch").clicked() {
+                        // validate lat and lon
+                        // TODO surface error as modal
+                        let (lat, lon) =
+                            validate_lat_long_input(&mut self.latitude, &mut self.longitude)
+                                .unwrap();
+
                         let rt = Runtime::new().unwrap();
                         let api_key = std::env!("PIRATEWEATHER_API_KEY");
-                        let result = rt.block_on(fetch_forecast(&api_key, 37.233, -115.800));
+                        let result = rt.block_on(fetch_forecast(&api_key, lat, lon));
 
                         if let Ok(data) = result {
                             println!("{:#?}", data);
                         } else if let Err(err) = result {
+                            // TODO surface as modal
                             println!("{err}");
                         }
                     }
@@ -93,4 +104,14 @@ impl eframe::App for WeatherApp {
             // widget display area
         });
     }
+}
+
+// ensures input string is a valid float and clears the buffer if not
+fn validate_lat_long_input(lat: &mut String, lon: &mut String) -> Result<(f64, f64), String> {
+    let validate = |input: &mut String| -> Result<f64, String> {
+        input
+            .parse::<f64>()
+            .map_err(|_| "Invalid input: number not parseable as float.".to_string())
+    };
+    Ok((validate(lat)?, validate(lon)?))
 }
