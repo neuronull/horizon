@@ -2,23 +2,15 @@ use serde::{Deserialize, Serialize};
 use tokio::runtime::Runtime;
 
 use eframe::{CreationContext, Frame};
-use egui::{Context, Label, TextEdit};
+use egui::{Context, Label, Layout, ScrollArea, TextEdit};
 
 use lib_weather::fetch_forecast;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct WeatherApp {
     latitude: String,
     longitude: String,
-}
-
-impl Default for WeatherApp {
-    fn default() -> Self {
-        Self {
-            latitude: Default::default(),
-            longitude: Default::default(),
-        }
-    }
+    // widgets: Widgets,
 }
 
 impl WeatherApp {
@@ -97,7 +89,18 @@ impl eframe::App for WeatherApp {
                     }
                 });
                 ui.separator();
+
                 // widget toggle area
+                ui.vertical_centered(|ui| {
+                    ui.heading("Widgets");
+
+                    ScrollArea::vertical().show(ui, |ui| {
+                        ui.with_layout(Layout::top_down_justified(egui::Align::LEFT), |ui| {
+                            // display widget labels
+                        });
+                    });
+                });
+                ui.separator();
             });
 
         egui::CentralPanel::default().show(ctx, |_ui| {
