@@ -14,6 +14,6 @@ fn main() -> eframe::Result {
     eframe::run_native(
         horizon::APP_NAME,
         native_options,
-        Box::new(|cc| Ok(Box::new(horizon::WeatherApp::new(cc)))),
+        Box::new(|cc| Ok(Box::new(horizon::AppController::new(cc)))),
     )
 }
