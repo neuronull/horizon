@@ -3,6 +3,8 @@
 // native:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
+    use lib_weather::{PirateData, PirateWeather};
+
     env_logger::init();
 
     let native_options = eframe::NativeOptions {
@@ -14,6 +16,10 @@ fn main() -> eframe::Result {
     eframe::run_native(
         horizon::APP_NAME,
         native_options,
-        Box::new(|cc| Ok(Box::new(horizon::AppController::new(cc)))),
+        Box::new(|cc| {
+            Ok(Box::new(
+                horizon::AppController::<PirateData, PirateWeather>::new(cc),
+            ))
+        }),
     )
 }

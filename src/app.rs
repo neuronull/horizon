@@ -1,15 +1,18 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    marker::{PhantomData, Send},
+    sync::{Arc, Mutex},
+};
 
-use serde::{Deserialize, Serialize};
 use tokio::runtime::{Builder, Runtime};
 
 use eframe::{CreationContext, Frame};
 use egui::{Context, Label, Layout, ScrollArea, TextEdit, Ui};
 
-use lib_weather::fetch_forecast;
+use lib_weather::{WeatherData, WeatherFetch};
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Default)]
 pub struct AppState {
+    /// True if a fetch has been requested and not yet processed.
     pub fetch_requested: bool,
     // TODO: find a way to not keep both types. fields are not editable without this.
     latitude_str: String,
@@ -19,59 +22,100 @@ pub struct AppState {
     // widgets: Widgets,
 }
 
-pub struct AppController {
+pub struct AppController<D, F>
+where
+    D: WeatherData + Default + Send + 'static,
+    F: WeatherFetch<Output = D> + Send,
+{
     runtime: Runtime,
     state: Arc<Mutex<AppState>>,
+    /// Weather data
+    pub data: Arc<Mutex<D>>,
+    _fetcher: PhantomData<F>,
 }
 
-impl AppController {
+impl<D, F> AppController<D, F>
+where
+    D: WeatherData + Default + Send + 'static,
+    F: WeatherFetch<Output = D> + Send,
+{
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let runtime = Builder::new_multi_thread()
             .enable_all()
             .build()
             .expect("Failed to build runtime");
 
+        let data = Arc::new(Mutex::new(D::new()));
         let state = Arc::new(Mutex::new(AppState::new(cc)));
 
-        Self { runtime, state }
+        Self {
+            runtime,
+            state,
+            data,
+            _fetcher: PhantomData,
+        }
+    }
+
+    fn fetch(&mut self, lat: f64, lon: f64) {
+        let data = Arc::clone(&self.data);
+
+        self.runtime.spawn(async move {
+            // TODO surface error to user
+            match F::fetch_weather(lat, lon).await {
+                Ok(response) => {
+                    let mut data = data.lock().unwrap();
+                    *data = response;
+                }
+                Err(err) => eprintln!("{err}"),
+            }
+        });
     }
 }
 
-impl eframe::App for AppController {
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        let state = self.state.lock().unwrap();
+impl<D, F> eframe::App for AppController<D, F>
+where
+    D: WeatherData + Default + Send + 'static,
+    F: WeatherFetch<Output = D> + Send,
+{
+    // TODO: re-enable for feature to save state
+    // fn save(&mut self, storage: &mut dyn eframe::Storage) {
+    //     let state = self.state.lock().unwrap();
 
-        eframe::set_value(storage, eframe::APP_KEY, &*state);
-    }
+    //     eframe::set_value(storage, eframe::APP_KEY, &*state);
+    // }
 
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
-        let mut state = self.state.lock().unwrap();
-        if state.fetch_requested {
-            state.fetch_requested = false; // reset flag
-
-            let latitude = state.latitude;
-            let longitude = state.longitude;
-
-            self.runtime.spawn(async move {
-                let api_key = std::env!("PIRATEWEATHER_API_KEY");
-                match fetch_forecast(&api_key, latitude, longitude).await {
-                    Ok(resp) => println!("{resp:#?}"),
-                    Err(err) => eprintln!("{err}"),
-                }
-            });
+        let mut requested = false;
+        let mut lat = 0.0;
+        let mut lon = 0.0;
+        {
+            let mut state = self.state.lock().unwrap();
+            if state.fetch_requested {
+                requested = true;
+                lat = state.latitude;
+                lon = state.longitude;
+                state.fetch_requested = false;
+            }
         }
 
-        state.update(ctx, frame);
+        if requested {
+            self.fetch(lat, lon);
+        }
+
+        let data = self.data.lock().unwrap();
+        let mut state = self.state.lock().unwrap();
+        state.update(&*data, ctx, frame);
     }
 }
 
 impl AppState {
     /// Called once before the first frame.
-    pub fn new(cc: &CreationContext<'_>) -> Self {
+    pub fn new(_cc: &CreationContext<'_>) -> Self {
+        // TODO: re-enable for feature to save state
         // Load previous app state (if any).
-        if let Some(storage) = cc.storage {
-            return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        }
+        // if let Some(storage) = cc.storage {
+        //     return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+        // }
 
         Default::default()
     }
@@ -129,15 +173,8 @@ impl AppState {
         });
         ui.separator();
     }
-}
 
-impl eframe::App for AppState {
-    /// Called by the frame work to save state before shutdown.
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, self);
-    }
-
-    fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
+    fn update<D: WeatherData>(&mut self, _data: &D, ctx: &Context, _frame: &mut Frame) {
         egui::SidePanel::right("right_panel")
             .resizable(false)
             .default_width(100.0)

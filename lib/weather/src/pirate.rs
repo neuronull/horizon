@@ -1,28 +1,37 @@
+use async_trait::async_trait;
 use reqwest::Client;
 use serde::Deserialize;
 use std::error::Error;
 
+use super::{WeatherData, WeatherFetch};
+
 const BASE_URL: &str = "https://api.pirateweather.net";
 
-pub async fn fetch_forecast(
-    api_key: &str,
-    lat: f64,
-    lon: f64,
-) -> Result<ForecastResponse, Box<dyn Error>> {
-    let url = format!("{}/forecast/{}/{},{}?units=us", BASE_URL, api_key, lat, lon);
+pub struct PirateWeather {}
 
-    let client = Client::new();
-    let forecast = client
-        .get(&url)
-        .send()
-        .await?
-        .json::<ForecastResponse>()
-        .await?;
+#[async_trait]
+impl WeatherFetch for PirateWeather {
+    type Output = ForecastResponse;
 
-    Ok(forecast)
+    async fn fetch_weather(lat: f64, lon: f64) -> Result<Self::Output, Box<dyn Error>> {
+        let api_key = std::env!("PIRATEWEATHER_API_KEY");
+        let url = format!("{}/forecast/{}/{},{}?units=us", BASE_URL, api_key, lat, lon);
+
+        let client = Client::new();
+        let forecast = client
+            .get(&url)
+            .send()
+            .await?
+            .json::<ForecastResponse>()
+            .await?;
+
+        println!("{forecast:#?}");
+
+        Ok(forecast)
+    }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct ForecastResponse {
     pub latitude: f64,
     pub longitude: f64,
@@ -35,6 +44,12 @@ pub struct ForecastResponse {
     pub daily: Option<DataBlock>,
     pub alerts: Option<Vec<Alert>>,
     pub flags: Flags,
+}
+
+impl WeatherData for ForecastResponse {
+    fn new() -> Self {
+        Default::default()
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -174,7 +189,7 @@ pub struct Alert {
     pub uri: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct Flags {
     pub units: String,
     pub version: String,

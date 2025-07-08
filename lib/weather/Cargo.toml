@@ -7,5 +7,6 @@ rust-version = "1.81"
 publish = false
 
 [dependencies]
+async-trait.workspace = true
 reqwest = { version = "0.12", features = ["json"] }
 serde.workspace = true
