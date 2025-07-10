@@ -153,6 +153,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.98"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
+
+[[package]]
 name = "arboard"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -689,6 +695,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_plot"
+version = "0.32.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14ae092b46ea532f6c69d3e71036fb3b688fd00fd09c2a1e43d17051a8ae43e6"
+dependencies = [
+ "ahash",
+ "egui",
+ "emath",
+]
+
+[[package]]
 name = "emath"
 version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1141,8 +1158,10 @@ dependencies = [
 name = "horizon"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "eframe",
  "egui",
+ "egui_plot",
  "env_logger",
  "lib-weather",
  "log",
@@ -1521,6 +1540,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 name = "lib-weather"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "reqwest",
  "serde",

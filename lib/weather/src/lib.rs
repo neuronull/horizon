@@ -1,5 +1,5 @@
+use anyhow::Result;
 use async_trait::async_trait;
-use std::error::Error;
 
 mod pirate;
 
@@ -13,5 +13,5 @@ pub trait WeatherData {
 pub trait WeatherFetch {
     type Output;
 
-    async fn fetch_weather(lat: f64, lon: f64) -> Result<Self::Output, Box<dyn Error>>;
+    async fn fetch_weather(lat: f64, lon: f64) -> Result<Self::Output>;
 }

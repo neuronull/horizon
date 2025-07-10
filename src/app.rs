@@ -3,10 +3,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use tokio::runtime::{Builder, Runtime};
-
+use anyhow::{Context, Result};
 use eframe::{CreationContext, Frame};
-use egui::{Context, Id, Label, Layout, Modal, ScrollArea, TextEdit, Ui};
+use egui::{Context as Ctx, Id, Label, Layout, Modal, ScrollArea, TextEdit, Ui};
+use tokio::runtime::{Builder, Runtime};
 
 use lib_weather::{WeatherData, WeatherFetch};
 
@@ -86,7 +86,7 @@ where
     //     eframe::set_value(storage, eframe::APP_KEY, &*state);
     // }
 
-    fn update(&mut self, ctx: &Context, frame: &mut Frame) {
+    fn update(&mut self, ctx: &Ctx, frame: &mut Frame) {
         let mut requested = false;
         let mut lat = 0.0;
         let mut lon = 0.0;
@@ -199,7 +199,7 @@ impl AppState {
         });
     }
 
-    fn update<D: WeatherData>(&mut self, _data: &D, ctx: &Context, _frame: &mut Frame) {
+    fn update<D: WeatherData>(&mut self, _data: &D, ctx: &Ctx, _frame: &mut Frame) {
         egui::SidePanel::right("right_panel")
             .resizable(false)
             .default_width(100.0)
@@ -221,11 +221,11 @@ impl AppState {
 }
 
 // ensures input string is a valid float and clears the buffer if not
-fn validate_lat_lon_input(lat: &str, lon: &str) -> Result<(f64, f64), String> {
-    let validate = |input: &str| -> Result<f64, String> {
+fn validate_lat_lon_input(lat: &str, lon: &str) -> Result<(f64, f64)> {
+    let validate = |input: &str| -> Result<f64> {
         input
             .parse::<f64>()
-            .map_err(|_| "Invalid input: number not parseable as float.".to_string())
+            .context("Invalid input: number not parseable as float.")
     };
     Ok((validate(lat)?, validate(lon)?))
 }
@@ -237,10 +237,13 @@ mod test {
     #[test]
     fn validate_lat_lon_happy() {
         assert_eq!(
-            Ok((37.233, -115.800)),
-            validate_lat_lon_input("37.233", "-115.800")
+            (37.233, -115.800),
+            validate_lat_lon_input("37.233", "-115.800").unwrap()
         );
-        assert_eq!(Ok((37.0, -115.0)), validate_lat_lon_input("37", "-115"));
+        assert_eq!(
+            (37.0, -115.0),
+            validate_lat_lon_input("37", "-115").unwrap()
+        );
     }
 
     #[test]

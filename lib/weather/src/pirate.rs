@@ -1,7 +1,7 @@
+use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::Deserialize;
-use std::error::Error;
 
 use super::{WeatherData, WeatherFetch};
 
@@ -13,7 +13,7 @@ pub struct PirateWeather {}
 impl WeatherFetch for PirateWeather {
     type Output = ForecastResponse;
 
-    async fn fetch_weather(lat: f64, lon: f64) -> Result<Self::Output, Box<dyn Error>> {
+    async fn fetch_weather(lat: f64, lon: f64) -> Result<Self::Output> {
         let api_key = std::env!("PIRATEWEATHER_API_KEY");
         let url = format!("{}/forecast/{}/{},{}?units=us", BASE_URL, api_key, lat, lon);
 
