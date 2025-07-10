@@ -251,8 +251,13 @@ mod test {
 
     #[test]
     #[should_panic(expected = "Invalid input: number not parseable as float.")]
-    fn validate_lat_lon_fail_nonnumber() {
+    fn validate_lat_lon_fail_nonnumber_lat() {
         validate_lat_lon_input("area", "-115").unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid input: number not parseable as float.")]
+    fn validate_lat_lon_fail_nonnumber_lon() {
         validate_lat_lon_input("37", "fiftyone").unwrap();
     }
 }
