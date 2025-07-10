@@ -10,10 +10,21 @@ use tokio::runtime::{Builder, Runtime};
 
 use lib_weather::{WeatherData, WeatherFetch};
 
+/// State machine for fetching weather data
+#[derive(Default, PartialEq)]
+enum FetchState {
+    /// The fetch request has completed.
+    #[default]
+    Completed,
+    /// The fetch has been requested, but has not started yet.
+    Requested,
+    /// The fetch is in progress.
+    InProgress,
+}
+
 #[derive(Default)]
 pub struct AppState {
-    /// True if a fetch has been requested and not yet processed.
-    pub fetch_requested: bool,
+    pub fetch_state: FetchState,
     // TODO: find a way to not keep both types. fields are not editable without this.
     latitude_str: String,
     longitude_str: String,
@@ -59,6 +70,7 @@ where
 
     fn fetch(&mut self, lat: f64, lon: f64) {
         let data = Arc::clone(&self.data);
+        let state = Arc::clone(&self.state);
 
         self.runtime.spawn(async move {
             println!("doing fetch");
@@ -67,6 +79,8 @@ where
                 Ok(response) => {
                     let mut data = data.lock().unwrap();
                     *data = response;
+                    let mut state = state.lock().unwrap();
+                    state.fetch_state = FetchState::Completed;
                 }
                 Err(err) => eprintln!("{err}"),
             }
@@ -92,11 +106,11 @@ where
         let mut lon = 0.0;
         {
             let mut state = self.state.lock().unwrap();
-            if state.fetch_requested {
+            if state.fetch_state == FetchState::Requested {
                 requested = true;
                 lat = state.latitude;
                 lon = state.longitude;
-                state.fetch_requested = false;
+                state.fetch_state = FetchState::InProgress;
             }
         }
 
@@ -151,15 +165,17 @@ impl AppState {
 
         egui::ScrollArea::vertical().show(ui, |ui| {
             if ui.button("Fetch").clicked() {
-                // validate lat and lon
-                match validate_lat_lon_input(&self.latitude_str, &self.longitude_str) {
-                    Ok((lat, lon)) => {
-                        self.latitude = lat;
-                        self.longitude = lon;
-                        self.fetch_requested = true;
-                    }
-                    Err(_err) => {
-                        self.location_error_modal_open = true;
+                if self.fetch_state == FetchState::Completed {
+                    // validate lat and lon
+                    match validate_lat_lon_input(&self.latitude_str, &self.longitude_str) {
+                        Ok((lat, lon)) => {
+                            self.latitude = lat;
+                            self.longitude = lon;
+                            self.fetch_state = FetchState::Requested;
+                        }
+                        Err(_err) => {
+                            self.location_error_modal_open = true;
+                        }
                     }
                 }
             }
