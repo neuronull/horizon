@@ -25,7 +25,7 @@ impl WeatherFetch for PirateWeather {
             .json::<ForecastResponse>()
             .await?;
 
-        println!("{forecast:#?}");
+        // println!("{forecast:#?}");
 
         Ok(forecast)
     }

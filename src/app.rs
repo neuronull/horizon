@@ -6,7 +6,7 @@ use std::{
 use tokio::runtime::{Builder, Runtime};
 
 use eframe::{CreationContext, Frame};
-use egui::{Context, Label, Layout, ScrollArea, TextEdit, Ui};
+use egui::{Context, Id, Label, Layout, Modal, ScrollArea, TextEdit, Ui};
 
 use lib_weather::{WeatherData, WeatherFetch};
 
@@ -19,6 +19,7 @@ pub struct AppState {
     longitude_str: String,
     latitude: f64,
     longitude: f64,
+    location_error_modal_open: bool,
     // widgets: Widgets,
 }
 
@@ -60,6 +61,7 @@ where
         let data = Arc::clone(&self.data);
 
         self.runtime.spawn(async move {
+            println!("doing fetch");
             // TODO surface error to user
             match F::fetch_weather(lat, lon).await {
                 Ok(response) => {
@@ -150,12 +152,16 @@ impl AppState {
         egui::ScrollArea::vertical().show(ui, |ui| {
             if ui.button("Fetch").clicked() {
                 // validate lat and lon
-                // TODO surface error as modal
-                let (lat, lon) =
-                    validate_lat_long_input(&self.latitude_str, &self.longitude_str).unwrap();
-                self.latitude = lat;
-                self.longitude = lon;
-                self.fetch_requested = true;
+                match validate_lat_lon_input(&self.latitude_str, &self.longitude_str) {
+                    Ok((lat, lon)) => {
+                        self.latitude = lat;
+                        self.longitude = lon;
+                        self.fetch_requested = true;
+                    }
+                    Err(_err) => {
+                        self.location_error_modal_open = true;
+                    }
+                }
             }
         });
         ui.separator();
@@ -174,6 +180,25 @@ impl AppState {
         ui.separator();
     }
 
+    fn show_location_error_modal(&mut self, ui: &mut Ui) {
+        Modal::new(Id::new("location_error_modal")).show(ui.ctx(), |ui| {
+            ui.set_width(200.0);
+            ui.heading("Location invalid.");
+
+            ui.add_space(32.0);
+
+            egui::Sides::new().show(
+                ui,
+                |_ui| {},
+                |ui| {
+                    if ui.button("close").clicked() {
+                        self.location_error_modal_open = false;
+                    }
+                },
+            );
+        });
+    }
+
     fn update<D: WeatherData>(&mut self, _data: &D, ctx: &Context, _frame: &mut Frame) {
         egui::SidePanel::right("right_panel")
             .resizable(false)
@@ -185,18 +210,49 @@ impl AppState {
                 self.update_widget_toggle_pane(ui);
             });
 
-        egui::CentralPanel::default().show(ctx, |_ui| {
+        egui::CentralPanel::default().show(ctx, |ui| {
             // widget display area
+            //
+            if self.location_error_modal_open {
+                self.show_location_error_modal(ui);
+            }
         });
     }
 }
 
 // ensures input string is a valid float and clears the buffer if not
-fn validate_lat_long_input(lat: &str, lon: &str) -> Result<(f64, f64), String> {
+fn validate_lat_lon_input(lat: &str, lon: &str) -> Result<(f64, f64), String> {
     let validate = |input: &str| -> Result<f64, String> {
         input
             .parse::<f64>()
             .map_err(|_| "Invalid input: number not parseable as float.".to_string())
     };
     Ok((validate(lat)?, validate(lon)?))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn validate_lat_lon_happy() {
+        assert_eq!(
+            Ok((37.233, -115.800)),
+            validate_lat_lon_input("37.233", "-115.800")
+        );
+        assert_eq!(Ok((37.0, -115.0)), validate_lat_lon_input("37", "-115"));
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid input: number not parseable as float.")]
+    fn validate_lat_lon_fail_empty() {
+        validate_lat_lon_input("", "").unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid input: number not parseable as float.")]
+    fn validate_lat_lon_fail_nonnumber() {
+        validate_lat_lon_input("area", "-115").unwrap();
+        validate_lat_lon_input("37", "fiftyone").unwrap();
+    }
 }
