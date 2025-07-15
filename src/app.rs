@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeSet,
     marker::{PhantomData, Send},
     sync::{Arc, Mutex},
 };
@@ -8,6 +9,7 @@ use eframe::{CreationContext, Frame};
 use egui::{Context as Ctx, Id, Label, Layout, Modal, ScrollArea, TextEdit, Ui};
 use tokio::runtime::{Builder, Runtime};
 
+use super::Widgets;
 use lib_weather::{WeatherData, WeatherFetch};
 
 /// State machine for fetching weather data
@@ -31,7 +33,8 @@ pub struct AppState {
     latitude: f64,
     longitude: f64,
     location_error_modal_open: bool,
-    // widgets: Widgets,
+    widgets: Widgets,
+    open_widgets: BTreeSet<String>,
 }
 
 pub struct AppController<D, F>
@@ -133,7 +136,10 @@ impl AppState {
         //     return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
         // }
 
-        Default::default()
+        Self {
+            widgets: Widgets::new(),
+            ..Default::default()
+        }
     }
 
     fn update_location(&mut self, ui: &mut Ui) {
@@ -183,13 +189,14 @@ impl AppState {
         ui.separator();
     }
 
+    // display widget selectors
     fn update_widget_toggle_pane(&mut self, ui: &mut Ui) {
         ui.vertical_centered(|ui| {
             ui.heading("Widgets");
 
             ScrollArea::vertical().show(ui, |ui| {
-                ui.with_layout(Layout::top_down_justified(egui::Align::LEFT), |_ui| {
-                    // display widget labels
+                ui.with_layout(Layout::top_down_justified(egui::Align::LEFT), |ui| {
+                    self.widgets.checkboxes(ui, &mut self.open_widgets);
                 });
             });
         });
@@ -228,7 +235,7 @@ impl AppState {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             // widget display area
-            //
+
             if self.location_error_modal_open {
                 self.show_location_error_modal(ui);
             }
