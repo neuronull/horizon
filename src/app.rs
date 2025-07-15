@@ -218,8 +218,8 @@ impl AppState {
     fn update<D: WeatherData>(&mut self, _data: &D, ctx: &Ctx, _frame: &mut Frame) {
         egui::SidePanel::right("right_panel")
             .resizable(false)
-            .default_width(100.0)
-            .min_width(100.0)
+            .default_width(200.0)
+            .min_width(200.0)
             .show(ctx, |ui| {
                 self.update_location(ui);
 
