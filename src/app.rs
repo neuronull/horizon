@@ -64,7 +64,7 @@ where
             .build()
             .expect("Failed to build runtime");
 
-        let data = Arc::new(Mutex::new(D::new()));
+        let data = Arc::new(Mutex::new(D::default()));
         let state = Arc::new(Mutex::new(AppState::new(cc)));
 
         Self {
@@ -221,7 +221,7 @@ impl AppState {
         });
     }
 
-    fn update<D: WeatherData>(&mut self, _data: &D, ctx: &Ctx, _frame: &mut Frame) {
+    fn update<D: WeatherData>(&mut self, data: &D, ctx: &Ctx, _frame: &mut Frame) {
         egui::SidePanel::right("right_panel")
             .resizable(false)
             .default_width(200.0)
@@ -234,7 +234,7 @@ impl AppState {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             // widget display area
-            self.widgets.windows(ctx, &mut self.open_widgets);
+            self.widgets.windows(ctx, &mut self.open_widgets, data);
 
             if self.location_error_modal_open {
                 self.show_location_error_modal(ui);

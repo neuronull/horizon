@@ -47,8 +47,8 @@ pub struct ForecastResponse {
 }
 
 impl WeatherData for ForecastResponse {
-    fn new() -> Self {
-        ForecastResponse::default()
+    fn current(&self) -> Option<&DataPoint> {
+        self.currently.as_ref()
     }
 }
 

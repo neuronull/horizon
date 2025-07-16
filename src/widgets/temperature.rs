@@ -1,4 +1,5 @@
 use egui::Context;
+use lib_weather::WeatherData;
 
 use super::Widget;
 
@@ -12,7 +13,7 @@ impl Widget for TemperatureWidget {
         "temperature"
     }
 
-    fn show(&mut self, ctx: &Context, open: &mut bool) {
+    fn show(&mut self, ctx: &Context, open: &mut bool, data: &dyn WeatherData) {
         // TODO
     }
 }

@@ -1,12 +1,13 @@
 use std::collections::BTreeSet;
 
 use egui::{Context, Ui};
+use lib_weather::WeatherData;
 
 mod current;
 mod temperature;
 
 pub trait View {
-    fn ui(&mut self, ui: &mut Ui);
+    fn ui(&mut self, ui: &mut Ui, data: &dyn WeatherData);
 }
 
 trait Widget {
@@ -17,7 +18,7 @@ trait Widget {
 
     fn name(&self) -> &'static str;
 
-    fn show(&mut self, ctx: &Context, open: &mut bool);
+    fn show(&mut self, ctx: &Context, open: &mut bool, data: &dyn WeatherData);
 }
 
 #[derive(Default)]
@@ -47,11 +48,11 @@ impl Widgets {
         }
     }
 
-    pub fn windows(&mut self, ctx: &Context, open: &mut BTreeSet<String>) {
+    pub fn windows(&mut self, ctx: &Context, open: &mut BTreeSet<String>, data: &impl WeatherData) {
         let Self { widgets } = self;
         for widget in widgets {
             let mut is_open = open.contains(widget.name());
-            widget.show(ctx, &mut is_open);
+            widget.show(ctx, &mut is_open, data);
             set_open(open, widget.name(), is_open);
         }
     }

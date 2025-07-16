@@ -9,7 +9,8 @@ mod pirate;
 pub use pirate::{ForecastResponse as PirateData, PirateWeather};
 
 pub trait WeatherData {
-    fn new() -> Self;
+    // TODO we'll create an abstraction layer later
+    fn current(&self) -> Option<&pirate::DataPoint>;
 }
 
 #[async_trait]
