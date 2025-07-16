@@ -5,6 +5,10 @@ use egui::{Context, Ui};
 mod current;
 mod temperature;
 
+pub trait View {
+    fn ui(&mut self, ui: &mut Ui);
+}
+
 trait Widget {
     /// Is the widget enabled
     fn is_enabled(&self, _ctx: &Context) -> bool {

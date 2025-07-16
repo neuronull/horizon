@@ -234,6 +234,7 @@ impl AppState {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             // widget display area
+            self.widgets.windows(ctx, &mut self.open_widgets);
 
             if self.location_error_modal_open {
                 self.show_location_error_modal(ui);

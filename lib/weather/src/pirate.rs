@@ -14,7 +14,7 @@ impl WeatherFetch for PirateWeather {
     type Output = ForecastResponse;
 
     async fn fetch_weather(lat: f64, lon: f64) -> Result<Self::Output> {
-        let api_key = std::env!("PIRATEWEATHER_API_KEY");
+        let api_key = std::env::var("PIRATEWEATHER_API_KEY")?;
         let url = format!("{BASE_URL}/forecast/{api_key}/{lat},{lon}?units=us");
 
         let client = Client::new();
