@@ -14,7 +14,7 @@ use lib_weather::{WeatherData, WeatherFetch};
 
 /// State machine for fetching weather data
 #[derive(Default, PartialEq)]
-enum FetchState {
+pub enum FetchState {
     /// The fetch request has completed.
     #[default]
     Completed,
@@ -54,6 +54,10 @@ where
     D: WeatherData + Default + Send + 'static,
     F: WeatherFetch<Output = D> + Send,
 {
+    /// # Panics
+    ///
+    /// Will panic if tokio runtime build fails
+    #[must_use]
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let runtime = Builder::new_multi_thread()
             .enable_all()
@@ -156,32 +160,27 @@ impl AppState {
                 ui.add(Label::new("Latitude: "));
 
                 // latitude
-                let latitude_response =
-                    ui.add(TextEdit::singleline(&mut self.latitude_str).hint_text("37.233"));
+                ui.add(TextEdit::singleline(&mut self.latitude_str).hint_text("37.233"));
                 ui.end_row();
 
                 // longitude
                 ui.add(Label::new("Longitude: "));
-                let longitude_response =
-                    ui.add(TextEdit::singleline(&mut self.longitude_str).hint_text("-115.800"));
+                ui.add(TextEdit::singleline(&mut self.longitude_str).hint_text("-115.800"));
 
-                if latitude_response.changed() || longitude_response.changed() {}
                 ui.end_row();
             });
 
         egui::ScrollArea::vertical().show(ui, |ui| {
-            if ui.button("Fetch").clicked() {
-                if self.fetch_state == FetchState::Completed {
-                    // validate lat and lon
-                    match validate_lat_lon_input(&self.latitude_str, &self.longitude_str) {
-                        Ok((lat, lon)) => {
-                            self.latitude = lat;
-                            self.longitude = lon;
-                            self.fetch_state = FetchState::Requested;
-                        }
-                        Err(_err) => {
-                            self.location_error_modal_open = true;
-                        }
+            if ui.button("Fetch").clicked() && self.fetch_state == FetchState::Completed {
+                // validate lat and lon
+                match validate_lat_lon_input(&self.latitude_str, &self.longitude_str) {
+                    Ok((lat, lon)) => {
+                        self.latitude = lat;
+                        self.longitude = lon;
+                        self.fetch_state = FetchState::Requested;
+                    }
+                    Err(_err) => {
+                        self.location_error_modal_open = true;
                     }
                 }
             }

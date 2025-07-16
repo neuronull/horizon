@@ -1,3 +1,6 @@
+#![warn(clippy::pedantic)]
+#![warn(clippy::all, rust_2018_idioms)]
+
 use anyhow::Result;
 use async_trait::async_trait;
 

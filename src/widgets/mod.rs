@@ -22,6 +22,7 @@ pub struct Widgets {
 }
 
 impl Widgets {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             widgets: vec![

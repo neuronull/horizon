@@ -15,7 +15,7 @@ impl WeatherFetch for PirateWeather {
 
     async fn fetch_weather(lat: f64, lon: f64) -> Result<Self::Output> {
         let api_key = std::env!("PIRATEWEATHER_API_KEY");
-        let url = format!("{}/forecast/{}/{},{}?units=us", BASE_URL, api_key, lat, lon);
+        let url = format!("{BASE_URL}/forecast/{api_key}/{lat},{lon}?units=us");
 
         let client = Client::new();
         let forecast = client
@@ -48,7 +48,7 @@ pub struct ForecastResponse {
 
 impl WeatherData for ForecastResponse {
     fn new() -> Self {
-        Default::default()
+        ForecastResponse::default()
     }
 }
 
