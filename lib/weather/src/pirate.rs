@@ -2,6 +2,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::Deserialize;
+use tracing::info;
 
 use super::{WeatherData, WeatherFetch};
 
@@ -25,7 +26,7 @@ impl WeatherFetch for PirateWeather {
             .json::<ForecastResponse>()
             .await?;
 
-        println!("aye... success pirate forecast");
+        info!("aye... fetched pirate weather data");
 
         Ok(forecast)
     }

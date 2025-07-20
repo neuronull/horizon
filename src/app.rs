@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use eframe::{CreationContext, Frame};
 use egui::{Context as Ctx, Id, Label, Layout, Modal, ScrollArea, TextEdit, Ui};
 use tokio::runtime::{Builder, Runtime};
-use tracing::info;
+use tracing::{error, info};
 
 use super::{setup_logging, Logs, Widgets};
 use lib_weather::{WeatherData, WeatherFetch};
@@ -96,8 +96,8 @@ where
         let state = Arc::clone(&self.state);
 
         self.runtime.spawn(async move {
-            println!("doing fetch");
-            // TODO surface error to user
+            info!("Fetching weather data at ({lat}, {lon})");
+
             match F::fetch_weather(lat, lon).await {
                 Ok(response) => {
                     let mut data = data.lock().unwrap();
@@ -106,7 +106,7 @@ where
                     state.update_data(&*data);
                     state.fetch_state = FetchState::Completed;
                 }
-                Err(err) => eprintln!("{err}"),
+                Err(err) => error!("{err}"),
             }
         });
     }
@@ -196,7 +196,8 @@ impl AppState {
                         self.longitude = lon;
                         self.fetch_state = FetchState::Requested;
                     }
-                    Err(_err) => {
+                    Err(err) => {
+                        error!("Invalid location submitted: {err}");
                         self.location_error_modal_open = true;
                     }
                 }

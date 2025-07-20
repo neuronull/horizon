@@ -1593,6 +1593,7 @@ dependencies = [
  "async-trait",
  "reqwest",
  "serde",
+ "tracing",
 ]
 
 [[package]]

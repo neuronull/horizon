@@ -22,6 +22,7 @@ members = [
 anyhow = "1.0"
 async-trait = "0.1.88"
 serde = { version = "1.0.219", features = ["derive"] }
+tracing = { version = "0.1" }
 
 [dependencies]
 
@@ -39,12 +40,12 @@ eframe = { version = "0.31", default-features = false, features = [
     "x11",           # To support older Linux distributions (restores one of the default features)
 ] }
 tokio = { version = "1.45.1", features = ["rt-multi-thread"] }
-tracing = { version = "0.1" }
 tracing-subscriber = { version = "0.3", features = ["fmt", "chrono"] }
 
 # workspace
 anyhow.workspace = true
 serde.workspace = true
+tracing.workspace = true
 
 # native
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
