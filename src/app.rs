@@ -24,8 +24,18 @@ pub enum FetchState {
     InProgress,
 }
 
+#[derive(PartialEq, Default)]
+enum View {
+    #[default]
+    Weather,
+    Log,
+}
+
 #[derive(Default)]
 pub struct AppState {
+    current_view: View,
+    log_view_selected: bool,
+    weather_view_selected: bool,
     pub fetch_state: FetchState,
     // TODO: find a way to not keep both types. fields are not editable without this.
     latitude_str: String,
@@ -141,6 +151,7 @@ impl AppState {
         // }
 
         Self {
+            weather_view_selected: true,
             widgets: Widgets::new(),
             ..Default::default()
         }
@@ -222,22 +233,52 @@ impl AppState {
     }
 
     fn update(&mut self, ctx: &Ctx, _frame: &mut Frame) {
-        egui::SidePanel::right("right_panel")
-            .resizable(false)
-            .default_width(200.0)
-            .min_width(200.0)
-            .show(ctx, |ui| {
-                self.update_location(ui);
-
-                self.update_widget_toggle_pane(ui);
+        // Top menu bar
+        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                if ui
+                    .toggle_value(&mut self.weather_view_selected, "Weather")
+                    .clicked()
+                {
+                    self.current_view = View::Weather;
+                    self.log_view_selected = false;
+                    self.weather_view_selected = true;
+                }
+                if ui
+                    .toggle_value(&mut self.log_view_selected, "Log")
+                    .clicked()
+                {
+                    self.current_view = View::Log;
+                    self.weather_view_selected = false;
+                    self.log_view_selected = true;
+                }
             });
+        });
 
+        // Central panel for view content
         egui::CentralPanel::default().show(ctx, |ui| {
-            // widget display area
-            self.widgets.windows(ctx, &mut self.open_widgets);
+            match self.current_view {
+                View::Weather => {
+                    egui::SidePanel::right("right_panel")
+                        .resizable(false)
+                        .default_width(200.0)
+                        .min_width(200.0)
+                        .show(ctx, |ui| {
+                            self.update_location(ui);
 
-            if self.location_error_modal_open {
-                self.show_location_error_modal(ui);
+                            self.update_widget_toggle_pane(ui);
+                        });
+
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        // widget display area
+                        self.widgets.windows(ctx, &mut self.open_widgets);
+
+                        if self.location_error_modal_open {
+                            self.show_location_error_modal(ui);
+                        }
+                    });
+                }
+                View::Log => {}
             }
         });
     }
