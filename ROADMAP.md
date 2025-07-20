@@ -4,11 +4,13 @@ This document outlines planned features, improvements, and milestones.
 
 ## ✅  MVP (v0.1.0)
 
-- [ ] Fetch current temperature data
-- [ ] Basic UI layout with egui
-  - [ ] select location
-  - [ ] widget toggle menu
+- [x] Fetch current temperature data
+- [x] Basic UI layout with egui
+  - [x] select location
+  - [x] widget toggle menu
 - [ ] Visual representatiion as modular data widget in the UI
+  - [ ] current weather widget
+  - [ ] temperature widget
 - [ ] Deploy first version to GitHub Pages
 
 ---
