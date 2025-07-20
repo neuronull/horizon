@@ -40,7 +40,7 @@ eframe = { version = "0.31", default-features = false, features = [
 ] }
 tokio = { version = "1.45.1", features = ["rt-multi-thread"] }
 tracing = { version = "0.1" }
-tracing-subscriber = { version = "0.3" }
+tracing-subscriber = { version = "0.3", features = ["fmt", "chrono"] }
 
 # workspace
 anyhow.workspace = true

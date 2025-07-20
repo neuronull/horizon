@@ -8,8 +8,9 @@ use anyhow::{Context, Result};
 use eframe::{CreationContext, Frame};
 use egui::{Context as Ctx, Id, Label, Layout, Modal, ScrollArea, TextEdit, Ui};
 use tokio::runtime::{Builder, Runtime};
+use tracing::info;
 
-use super::Widgets;
+use super::{setup_logging, Logs, Widgets};
 use lib_weather::{WeatherData, WeatherFetch};
 
 /// State machine for fetching weather data
@@ -54,6 +55,7 @@ where
 {
     runtime: Runtime,
     state: Arc<Mutex<AppState>>,
+    logs: Logs,
     /// Weather data
     pub data: Arc<Mutex<D>>,
     _fetcher: PhantomData<F>,
@@ -77,10 +79,14 @@ where
         let data = Arc::new(Mutex::new(D::default()));
         let state = Arc::new(Mutex::new(AppState::new(cc)));
 
+        let logs = setup_logging();
+        info!("Initializing app");
+
         Self {
             runtime,
             state,
             data,
+            logs,
             _fetcher: PhantomData,
         }
     }
@@ -264,13 +270,13 @@ impl AppState {
                         .resizable(false)
                         .default_width(200.0)
                         .min_width(200.0)
-                        .show(ctx, |ui| {
+                        .show(ui.ctx(), |ui| {
                             self.update_location(ui);
 
                             self.update_widget_toggle_pane(ui);
                         });
 
-                    egui::CentralPanel::default().show(ctx, |ui| {
+                    egui::CentralPanel::default().show(ui.ctx(), |ui| {
                         // widget display area
                         self.widgets.windows(ctx, &mut self.open_widgets);
 
