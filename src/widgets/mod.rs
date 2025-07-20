@@ -7,7 +7,7 @@ mod current;
 mod temperature;
 
 pub trait View {
-    fn ui(&mut self, ui: &mut Ui, data: &dyn WeatherData);
+    fn ui(&mut self, ui: &mut Ui);
 }
 
 trait Widget {
@@ -18,7 +18,9 @@ trait Widget {
 
     fn name(&self) -> &'static str;
 
-    fn show(&mut self, ctx: &Context, open: &mut bool, data: &dyn WeatherData);
+    fn show(&mut self, ctx: &Context, open: &mut bool);
+
+    fn update_data(&mut self, data: &dyn WeatherData);
 }
 
 #[derive(Default)]
@@ -38,8 +40,7 @@ impl Widgets {
     }
 
     pub fn checkboxes(&mut self, ui: &mut Ui, open: &mut BTreeSet<String>) {
-        let Self { widgets } = self;
-        for widget in widgets {
+        for widget in self.widgets.as_mut_slice() {
             if widget.is_enabled(ui.ctx()) {
                 let mut is_open = open.contains(widget.name());
                 ui.toggle_value(&mut is_open, widget.name());
@@ -48,12 +49,17 @@ impl Widgets {
         }
     }
 
-    pub fn windows(&mut self, ctx: &Context, open: &mut BTreeSet<String>, data: &impl WeatherData) {
-        let Self { widgets } = self;
-        for widget in widgets {
+    pub fn windows(&mut self, ctx: &Context, open: &mut BTreeSet<String>) {
+        for widget in self.widgets.as_mut_slice() {
             let mut is_open = open.contains(widget.name());
-            widget.show(ctx, &mut is_open, data);
+            widget.show(ctx, &mut is_open);
             set_open(open, widget.name(), is_open);
+        }
+    }
+
+    pub fn update_data(&mut self, data: &impl WeatherData) {
+        for widget in self.widgets.as_mut_slice() {
+            widget.update_data(data);
         }
     }
 }

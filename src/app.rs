@@ -87,6 +87,7 @@ where
                     let mut data = data.lock().unwrap();
                     *data = response;
                     let mut state = state.lock().unwrap();
+                    state.update_data(&*data);
                     state.fetch_state = FetchState::Completed;
                 }
                 Err(err) => eprintln!("{err}"),
@@ -125,9 +126,8 @@ where
             self.fetch(lat, lon);
         }
 
-        let data = self.data.lock().unwrap();
         let mut state = self.state.lock().unwrap();
-        state.update(&*data, ctx, frame);
+        state.update(ctx, frame);
     }
 }
 
@@ -221,7 +221,7 @@ impl AppState {
         });
     }
 
-    fn update<D: WeatherData>(&mut self, data: &D, ctx: &Ctx, _frame: &mut Frame) {
+    fn update(&mut self, ctx: &Ctx, _frame: &mut Frame) {
         egui::SidePanel::right("right_panel")
             .resizable(false)
             .default_width(200.0)
@@ -234,12 +234,16 @@ impl AppState {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             // widget display area
-            self.widgets.windows(ctx, &mut self.open_widgets, data);
+            self.widgets.windows(ctx, &mut self.open_widgets);
 
             if self.location_error_modal_open {
                 self.show_location_error_modal(ui);
             }
         });
+    }
+
+    fn update_data<D: WeatherData>(&mut self, data: &D) {
+        self.widgets.update_data(data);
     }
 }
 

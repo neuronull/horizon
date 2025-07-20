@@ -4,38 +4,60 @@ use lib_weather::WeatherData;
 use super::{View, Widget};
 
 #[derive(Default)]
-pub struct CurrentWidget {}
-
-impl CurrentWidget {}
+pub struct CurrentWidget {
+    current_temp: Option<i16>,
+    current_temp_color: Color32,
+}
 
 impl Widget for CurrentWidget {
     fn name(&self) -> &'static str {
         "current"
     }
 
-    fn show(&mut self, ctx: &Context, open: &mut bool, data: &dyn WeatherData) {
+    fn show(&mut self, ctx: &Context, open: &mut bool) {
         Window::new(self.name())
             .open(open)
             .default_size(egui::vec2(512.0, 256.0))
             .vscroll(false)
-            .show(ctx, |ui| self.ui(ui, data));
+            .show(ctx, |ui| self.ui(ui));
     }
-}
 
-impl View for CurrentWidget {
-    fn ui(&mut self, ui: &mut Ui, data: &dyn WeatherData) {
+    fn update_data(&mut self, data: &dyn WeatherData) {
         if let Some(cur) = data.current() {
             if let Some(t) = cur.temperature {
-                ui.colored_label(color_of_temp(t), format!("{t}"));
+                self.current_temp = Some(t.round() as i16);
+                self.current_temp_color = color_of_temp(t);
             } else {
+                self.current_temp = None;
                 // TODO: choose color
-                ui.colored_label(Color32::from_rgb(255, 255, 255), "--");
+                self.current_temp_color = Color32::from_rgb(255, 255, 255);
             }
         }
     }
 }
 
-// TODO add logic to compute color from temp ranges
-fn color_of_temp(_temp: f64) -> Color32 {
-    Color32::from_rgb(128, 140, 255)
+impl View for CurrentWidget {
+    fn ui(&mut self, ui: &mut Ui) {
+        if let Some(t) = self.current_temp {
+            ui.colored_label(self.current_temp_color, format!("{t}"));
+        } else {
+            ui.colored_label(self.current_temp_color, "--");
+        }
+    }
+}
+
+// compute color from temp ranges
+fn color_of_temp(temp: f64) -> Color32 {
+    // Clamp the temperature between -20°F and 120°F
+    let clamped = temp.clamp(-20.0, 120.0);
+
+    // Normalize to 0.0 - 1.0
+    let t = (clamped + 20.0) / 140.0;
+
+    // Interpolate between blue (cold) → cyan → green → yellow → red (hot)
+    let r = (255.0 * t.powf(1.5)).min(255.0) as u8;
+    let g = (255.0 * (1.0 - (2.0 * (t - 0.5)).abs())).min(255.0) as u8;
+    let b = (255.0 * (1.0 - t).powf(2.0)).min(255.0) as u8;
+
+    Color32::from_rgb(r, g, b)
 }

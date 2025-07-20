@@ -13,7 +13,10 @@ impl Widget for TemperatureWidget {
         "temperature"
     }
 
-    fn show(&mut self, ctx: &Context, open: &mut bool, data: &dyn WeatherData) {
+    fn show(&mut self, ctx: &Context, open: &mut bool) {
+        // TODO
+    }
+    fn update_data(&mut self, data: &dyn WeatherData) {
         // TODO
     }
 }
