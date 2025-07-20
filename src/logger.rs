@@ -2,6 +2,7 @@ use std::io::{self, Write};
 use std::sync::{Arc, Mutex};
 use tracing_subscriber::fmt::{self, MakeWriter};
 use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::EnvFilter;
 
 #[derive(Clone, Default)]
 pub struct Logs {
@@ -13,9 +14,9 @@ impl Logs {
     ///
     /// Will panic if unable to acquire the lock.
     #[must_use]
-    pub fn take_all(&self) -> Vec<String> {
-        let mut logs = self.logs.lock().unwrap();
-        std::mem::take(&mut *logs)
+    pub fn get(&self) -> Vec<String> {
+        let logs = self.logs.lock().unwrap();
+        logs.clone()
     }
 }
 
@@ -67,7 +68,9 @@ impl<'a> MakeWriter<'a> for LogWriter {
 pub fn setup_logging() -> Logs {
     let (make_writer, writer) = LogWriter::new();
 
-    let subscriber = tracing_subscriber::registry().with(
+    let env_filter = EnvFilter::new("horizon=info");
+
+    let subscriber = tracing_subscriber::registry().with(env_filter).with(
         fmt::layer()
             .with_writer(make_writer)
             .with_ansi(false)

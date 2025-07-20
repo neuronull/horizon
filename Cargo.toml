@@ -31,6 +31,7 @@ lib-weather = { path = "lib/weather" }
 
 # external
 egui = { version = "0.31" }
+egui_extras = { version ="0.31.1" }
 egui_plot = { version = "0.32.1" }
 eframe = { version = "0.31", default-features = false, features = [
     "default_fonts", # Embed the default egui fonts.
@@ -40,7 +41,7 @@ eframe = { version = "0.31", default-features = false, features = [
     "x11",           # To support older Linux distributions (restores one of the default features)
 ] }
 tokio = { version = "1.45.1", features = ["rt-multi-thread"] }
-tracing-subscriber = { version = "0.3", features = ["fmt", "chrono"] }
+tracing-subscriber = { version = "0.3", features = ["fmt", "chrono", "env-filter"] }
 
 # workspace
 anyhow.workspace = true

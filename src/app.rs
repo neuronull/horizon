@@ -7,6 +7,7 @@ use std::{
 use anyhow::{Context, Result};
 use eframe::{CreationContext, Frame};
 use egui::{Context as Ctx, Id, Label, Layout, Modal, ScrollArea, TextEdit, Ui};
+use egui_extras::syntax_highlighting;
 use tokio::runtime::{Builder, Runtime};
 use tracing::{error, info};
 
@@ -143,7 +144,7 @@ where
         }
 
         let mut state = self.state.lock().unwrap();
-        state.update(ctx, frame);
+        state.update(ctx, frame, &self.logs);
     }
 }
 
@@ -240,7 +241,7 @@ impl AppState {
         });
     }
 
-    fn update(&mut self, ctx: &Ctx, _frame: &mut Frame) {
+    fn update(&mut self, ctx: &Ctx, _frame: &mut Frame, logs: &Logs) {
         // Top menu bar
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -286,7 +287,17 @@ impl AppState {
                         }
                     });
                 }
-                View::Log => {}
+                View::Log => {
+                    // TODO don't clone the logs each time
+                    let logs = logs.get().join("\n");
+                    egui::CentralPanel::default().show(ui.ctx(), |ui| {
+                        // TODO improvements: highlighting on log syntax, colored differently for log levels
+                        let language = "rs";
+                        let theme =
+                            syntax_highlighting::CodeTheme::from_memory(ui.ctx(), ui.style());
+                        syntax_highlighting::code_view_ui(ui, &theme, &logs, language);
+                    });
+                }
             }
         });
     }
