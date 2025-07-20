@@ -68,7 +68,7 @@ impl<'a> MakeWriter<'a> for LogWriter {
 pub fn setup_logging() -> Logs {
     let (make_writer, writer) = LogWriter::new();
 
-    let env_filter = EnvFilter::new("horizon=info");
+    let env_filter = EnvFilter::new("horizon=info,lib_weather=info");
 
     let subscriber = tracing_subscriber::registry().with(env_filter).with(
         fmt::layer()
