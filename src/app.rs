@@ -1,7 +1,6 @@
 use std::{
     collections::BTreeSet,
     marker::{PhantomData, Send},
-    sync::{Arc, Mutex},
 };
 
 use anyhow::{Context, Result};
@@ -9,6 +8,7 @@ use eframe::{CreationContext, Frame};
 use egui::{Context as Ctx, Id, Label, Layout, Modal, ScrollArea, TextEdit, Ui};
 use egui_extras::syntax_highlighting;
 use tokio::runtime::{Builder, Runtime};
+use tokio::sync::watch::{Receiver, Sender};
 use tracing::{error, info};
 
 use super::{setup_logging, Logs, Widgets};
@@ -51,20 +51,22 @@ pub struct AppState {
 
 pub struct AppController<D, F>
 where
-    D: WeatherData + Default + Send + 'static,
+    D: WeatherData + Default + Sync + Send + 'static,
     F: WeatherFetch<Output = D> + Send,
 {
+    sender: Sender<D>,
+    receiver: Receiver<D>,
     runtime: Runtime,
-    state: Arc<Mutex<AppState>>,
+    state: AppState,
     logs: Logs,
     /// Weather data
-    pub data: Arc<Mutex<D>>,
+    pub data: D,
     _fetcher: PhantomData<F>,
 }
 
 impl<D, F> AppController<D, F>
 where
-    D: WeatherData + Default + Send + 'static,
+    D: WeatherData + Default + Sync + Send + 'static,
     F: WeatherFetch<Output = D> + Send,
 {
     /// # Panics
@@ -72,18 +74,21 @@ where
     /// Will panic if tokio runtime build fails
     #[must_use]
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        let runtime = Builder::new_multi_thread()
+        let runtime = Builder::new_current_thread()
             .enable_all()
             .build()
             .expect("Failed to build runtime");
 
-        let data = Arc::new(Mutex::new(D::default()));
-        let state = Arc::new(Mutex::new(AppState::new(cc)));
+        let data = D::default();
+        let state = AppState::new(cc);
+        let (sender, receiver) = tokio::sync::watch::channel(D::default());
 
         let logs = setup_logging();
         info!("Initializing app");
 
         Self {
+            sender,
+            receiver,
             runtime,
             state,
             data,
@@ -92,30 +97,31 @@ where
         }
     }
 
-    fn fetch(&mut self, lat: f64, lon: f64) {
-        let data = Arc::clone(&self.data);
-        let state = Arc::clone(&self.state);
+    fn fetch(&self, lat: f64, lon: f64) {
+        let sender = self.sender.clone();
 
-        self.runtime.spawn(async move {
-            info!("Fetching weather data at ({lat}, {lon})");
+        self.runtime.block_on(async {
+            tokio::spawn(async move {
+                info!("Fetching weather data at ({lat}, {lon})");
 
-            match F::fetch_weather(lat, lon).await {
-                Ok(response) => {
-                    let mut data = data.lock().unwrap();
-                    *data = response;
-                    let mut state = state.lock().unwrap();
-                    state.update_data(&*data);
-                    state.fetch_state = FetchState::Completed;
+                match F::fetch_weather(lat, lon).await {
+                    Ok(response) => {
+                        if let Err(err) = sender.send(response) {
+                            error!("{err}");
+                        }
+                    }
+                    Err(err) => error!("{err}"),
                 }
-                Err(err) => error!("{err}"),
-            }
+            })
+            .await
+            .expect("error joining thread");
         });
     }
 }
 
 impl<D, F> eframe::App for AppController<D, F>
 where
-    D: WeatherData + Default + Send + 'static,
+    D: WeatherData + Default + Sync + Send + 'static,
     F: WeatherFetch<Output = D> + Send,
 {
     // TODO: re-enable for feature to save state
@@ -126,25 +132,17 @@ where
     // }
 
     fn update(&mut self, ctx: &Ctx, frame: &mut Frame) {
-        let mut requested = false;
-        let mut lat = 0.0;
-        let mut lon = 0.0;
-        {
-            let mut state = self.state.lock().unwrap();
-            if state.fetch_state == FetchState::Requested {
-                requested = true;
-                lat = state.latitude;
-                lon = state.longitude;
-                state.fetch_state = FetchState::InProgress;
-            }
+        if self.state.fetch_state == FetchState::Requested {
+            self.state.fetch_state = FetchState::InProgress;
+            self.fetch(self.state.latitude, self.state.longitude);
         }
 
-        if requested {
-            self.fetch(lat, lon);
+        if let Ok(true) = self.receiver.has_changed() {
+            let new = self.receiver.borrow_and_update();
+            self.state.update_data(&*new);
         }
 
-        let mut state = self.state.lock().unwrap();
-        state.update(ctx, frame, &self.logs);
+        self.state.update(ctx, frame, &self.logs);
     }
 }
 
