@@ -33,7 +33,6 @@ impl Widget for CurrentWidget {
             if let Some(t) = cur.temperature {
                 self.current_temp_color = color_of_temp(t);
             } else {
-                // TODO: choose color
                 self.current_temp_color = Color32::from_rgb(255, 255, 255);
             }
 
@@ -42,7 +41,6 @@ impl Widget for CurrentWidget {
             if let Some(t) = cur.apparent_temperature {
                 self.feels_like_color = color_of_temp(t);
             } else {
-                // TODO: choose color
                 self.feels_like_color = Color32::from_rgb(255, 255, 255);
             }
         }

@@ -14,6 +14,9 @@ use tracing::{error, info};
 use super::{setup_logging, Logs, Widgets};
 use lib_weather::{WeatherData, WeatherFetch};
 
+const A51_LAT: &str = "37.233";
+const A51_LON: &str = "-115.800";
+
 /// State machine for fetching weather data
 #[derive(Default, PartialEq)]
 pub enum FetchState {
@@ -89,7 +92,7 @@ where
         let logs = setup_logging();
         info!("Initializing app");
 
-        Self {
+        let mut controller = Self {
             sender,
             receiver,
             runtime,
@@ -98,7 +101,11 @@ where
             logs,
             fetch_state: FetchState::default(),
             _fetcher: PhantomData,
-        }
+        };
+
+        controller.fetch();
+
+        controller
     }
 
     fn fetch(&mut self) {
@@ -175,6 +182,8 @@ impl AppState {
         // }
 
         Self {
+            latitude_str: String::from(A51_LAT),
+            longitude_str: String::from(A51_LON),
             weather_view_selected: true,
             widgets: Widgets::new(),
             ..Default::default()
@@ -195,12 +204,12 @@ impl AppState {
                 ui.add(Label::new("Latitude: "));
 
                 // latitude
-                ui.add(TextEdit::singleline(&mut self.latitude_str).hint_text("37.233"));
+                ui.add(TextEdit::singleline(&mut self.latitude_str).hint_text(A51_LAT));
                 ui.end_row();
 
                 // longitude
                 ui.add(Label::new("Longitude: "));
-                ui.add(TextEdit::singleline(&mut self.longitude_str).hint_text("-115.800"));
+                ui.add(TextEdit::singleline(&mut self.longitude_str).hint_text(A51_LON));
 
                 ui.end_row();
             });
