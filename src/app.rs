@@ -219,7 +219,6 @@ impl AppState {
         ui.separator();
     }
 
-    // TODO replace with error log ?
     fn show_location_error_modal(&mut self, ui: &mut Ui) {
         Modal::new(Id::new("location_error_modal")).show(ui.ctx(), |ui| {
             ui.set_width(200.0);
