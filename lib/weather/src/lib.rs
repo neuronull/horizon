@@ -8,9 +8,13 @@ mod pirate;
 
 pub use pirate::{ForecastResponse as PirateData, PirateWeather};
 
+// At present, just using the pirate data.
+// In the future if we support other weather APIs, we'll
+// want to introduce a proper abstraction layer.
+type DataPoint = pirate::DataPoint;
+
 pub trait WeatherData {
-    // TODO we'll create an abstraction layer later
-    fn current(&self) -> Option<&pirate::DataPoint>;
+    fn current(&self) -> Option<&DataPoint>;
 }
 
 #[async_trait]
