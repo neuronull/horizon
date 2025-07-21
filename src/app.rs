@@ -339,7 +339,7 @@ mod test {
     fn validate_lat_lon_happy() {
         assert_eq!(
             (37.233, -115.800),
-            validate_lat_lon_input("37.233", "-115.800").unwrap()
+            validate_lat_lon_input(A51_LAT, A51_LON).unwrap()
         );
         assert_eq!(
             (37.0, -115.0),
