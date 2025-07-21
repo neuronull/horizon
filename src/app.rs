@@ -35,20 +35,21 @@ enum View {
 
 #[derive(Default)]
 pub struct AppState {
+    // UI view state
     current_view: View,
     log_view_selected: bool,
     weather_view_selected: bool,
-    pub fetch_state: FetchState,
-    // TODO: find a way to not keep both types. fields are not editable without this.
+    /// location latitude
     latitude_str: String,
+    /// location longitude
     longitude_str: String,
-    latitude: f64,
-    longitude: f64,
     location_error_modal_open: bool,
+    /// UI widgets
     widgets: Widgets,
     open_widgets: BTreeSet<String>,
 }
 
+/// Manages intersection between the UI state and weather data.
 pub struct AppController<D, F>
 where
     D: WeatherData + Default + Sync + Send + 'static,
@@ -62,6 +63,8 @@ where
     /// Weather data
     pub data: D,
     _fetcher: PhantomData<F>,
+    /// state of the weather data fetch operation
+    fetch_state: FetchState,
 }
 
 impl<D, F> AppController<D, F>
@@ -93,11 +96,26 @@ where
             state,
             data,
             logs,
+            fetch_state: FetchState::default(),
             _fetcher: PhantomData,
         }
     }
 
-    fn fetch(&self, lat: f64, lon: f64) {
+    fn fetch(&mut self) {
+        // validate lat and lon first.
+        // we could do this in the UI update area when fetch button clicked,
+        // but then we'd either have to store a second set of vars for the parsed
+        // float values, or re-parse them here. Neither of which are ideal.
+        let (lat, lon) =
+            match validate_lat_lon_input(&self.state.latitude_str, &self.state.longitude_str) {
+                Ok(res) => res,
+                Err(err) => {
+                    error!("Invalid location submitted: {err}");
+                    self.state.location_error_modal_open = true;
+                    return;
+                }
+            };
+
         let sender = self.sender.clone();
 
         self.runtime.block_on(async {
@@ -132,9 +150,9 @@ where
     // }
 
     fn update(&mut self, ctx: &Ctx, frame: &mut Frame) {
-        if self.state.fetch_state == FetchState::Requested {
-            self.state.fetch_state = FetchState::InProgress;
-            self.fetch(self.state.latitude, self.state.longitude);
+        if self.fetch_state == FetchState::Requested {
+            self.fetch_state = FetchState::InProgress;
+            self.fetch();
         }
 
         if let Ok(true) = self.receiver.has_changed() {
@@ -142,7 +160,8 @@ where
             self.state.update_data(&*new);
         }
 
-        self.state.update(ctx, frame, &self.logs);
+        self.state
+            .update(ctx, frame, &self.logs, &mut self.fetch_state);
     }
 }
 
@@ -162,7 +181,7 @@ impl AppState {
         }
     }
 
-    fn update_location(&mut self, ui: &mut Ui) {
+    fn update_location(&mut self, ui: &mut Ui, fetch_state: &mut FetchState) {
         ui.vertical_centered(|ui| {
             ui.heading("Location");
         });
@@ -187,19 +206,8 @@ impl AppState {
             });
 
         egui::ScrollArea::vertical().show(ui, |ui| {
-            if ui.button("Fetch").clicked() && self.fetch_state == FetchState::Completed {
-                // validate lat and lon
-                match validate_lat_lon_input(&self.latitude_str, &self.longitude_str) {
-                    Ok((lat, lon)) => {
-                        self.latitude = lat;
-                        self.longitude = lon;
-                        self.fetch_state = FetchState::Requested;
-                    }
-                    Err(err) => {
-                        error!("Invalid location submitted: {err}");
-                        self.location_error_modal_open = true;
-                    }
-                }
+            if ui.button("Fetch").clicked() && *fetch_state == FetchState::Completed {
+                *fetch_state = FetchState::Requested;
             }
         });
         ui.separator();
@@ -238,7 +246,7 @@ impl AppState {
         });
     }
 
-    fn update(&mut self, ctx: &Ctx, _frame: &mut Frame, logs: &Logs) {
+    fn update(&mut self, ctx: &Ctx, _frame: &mut Frame, logs: &Logs, fetch_state: &mut FetchState) {
         // Top menu bar
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -270,7 +278,7 @@ impl AppState {
                         .default_width(200.0)
                         .min_width(200.0)
                         .show(ui.ctx(), |ui| {
-                            self.update_location(ui);
+                            self.update_location(ui, fetch_state);
 
                             self.update_widget_toggle_pane(ui);
                         });
