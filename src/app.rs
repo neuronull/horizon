@@ -1,4 +1,5 @@
 use std::marker::{PhantomData, Send};
+use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result};
 use eframe::{CreationContext, Frame};
@@ -7,7 +8,7 @@ use tokio::runtime::{Builder, Runtime};
 use tokio::sync::watch::{Receiver, Sender};
 use tracing::{error, info};
 
-use super::{LogsView, WeatherView};
+use super::{setup_logging, LogsView, WeatherView};
 use lib_weather::{WeatherData, WeatherFetch};
 
 /// State machine for fetching weather data
@@ -54,8 +55,11 @@ where
             .build()
             .expect("Failed to build runtime");
 
+        let logs = Arc::new(Mutex::new(Vec::<String>::new()));
+        setup_logging(Arc::clone(&logs));
+
         let data = D::default();
-        let state = AppState::new(cc);
+        let state = AppState::new(cc, logs);
         let (sender, receiver) = tokio::sync::watch::channel(D::default());
 
         info!("Initializing app");
@@ -159,7 +163,7 @@ pub struct AppState {
 
 impl AppState {
     /// Called once before the first frame.
-    pub fn new(_cc: &CreationContext<'_>) -> Self {
+    pub fn new(_cc: &CreationContext<'_>, logs: Arc<Mutex<Vec<String>>>) -> Self {
         // TODO: re-enable for feature to save state
         // Load previous app state (if any).
         // if let Some(storage) = cc.storage {
@@ -169,7 +173,7 @@ impl AppState {
         Self {
             weather_view_selected: true,
             weather_view: WeatherView::new(),
-            logs_view: LogsView::new(),
+            logs_view: LogsView::new(logs),
             ..Default::default()
         }
     }

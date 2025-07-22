@@ -9,17 +9,6 @@ pub struct Logs {
     logs: Arc<Mutex<Vec<String>>>,
 }
 
-impl Logs {
-    /// # Panics
-    ///
-    /// Will panic if unable to acquire the lock.
-    #[must_use]
-    pub fn get(&self) -> Vec<String> {
-        let logs = self.logs.lock().unwrap();
-        logs.clone()
-    }
-}
-
 impl Write for Logs {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let s = std::str::from_utf8(buf).unwrap_or_default();
@@ -42,14 +31,10 @@ pub struct LogWriter {
 }
 
 impl LogWriter {
-    pub fn new() -> (Self, Logs) {
-        let writer = Logs::default();
-        (
-            Self {
-                writer: writer.clone(),
-            },
-            writer,
-        )
+    pub fn new(logs: Arc<Mutex<Vec<String>>>) -> Self {
+        Self {
+            writer: Logs { logs },
+        }
     }
 }
 
@@ -64,9 +49,8 @@ impl<'a> MakeWriter<'a> for LogWriter {
 /// # Panics
 ///
 /// Will panic if unable to setup subscriber.
-#[must_use]
-pub fn setup_logging() -> Logs {
-    let (make_writer, writer) = LogWriter::new();
+pub fn setup_logging(logs: Arc<Mutex<Vec<String>>>) {
+    let make_writer = LogWriter::new(logs);
 
     let env_filter = EnvFilter::new("horizon=info,lib_weather=info");
 
@@ -78,6 +62,4 @@ pub fn setup_logging() -> Logs {
     );
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
-
-    writer
 }

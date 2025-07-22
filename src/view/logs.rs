@@ -1,24 +1,21 @@
+use std::sync::{Arc, Mutex};
+
 use egui::Ui;
 use egui_extras::syntax_highlighting;
 
-use crate::{setup_logging, Logs};
-
 #[derive(Default)]
 pub struct LogsView {
-    logger: Logs,
+    logs: Arc<Mutex<Vec<String>>>,
 }
 
 impl LogsView {
     #[must_use]
-    pub fn new() -> Self {
-        let logger = setup_logging();
-
-        Self { logger }
+    pub fn new(logs: Arc<Mutex<Vec<String>>>) -> Self {
+        Self { logs }
     }
 
     pub fn update(&mut self, ui: &Ui) {
-        // TODO dont clone each update
-        let logs = self.logger.get().join("\n");
+        let logs = self.logs.lock().unwrap().join("\n");
 
         egui::CentralPanel::default().show(ui.ctx(), |ui| {
             // TODO improvements: highlighting on log syntax, colored differently for log levels
