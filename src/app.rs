@@ -1,21 +1,14 @@
-use std::{
-    collections::BTreeSet,
-    marker::{PhantomData, Send},
-};
+use std::marker::{PhantomData, Send};
 
 use anyhow::{Context, Result};
 use eframe::{CreationContext, Frame};
-use egui::{Context as Ctx, Id, Label, Layout, Modal, ScrollArea, TextEdit, Ui};
-use egui_extras::syntax_highlighting;
+use egui::Context as Ctx;
 use tokio::runtime::{Builder, Runtime};
 use tokio::sync::watch::{Receiver, Sender};
 use tracing::{error, info};
 
-use super::{setup_logging, Logs, Widgets};
+use super::{LogsView, WeatherView};
 use lib_weather::{WeatherData, WeatherFetch};
-
-const A51_LAT: &str = "37.233";
-const A51_LON: &str = "-115.800";
 
 /// State machine for fetching weather data
 #[derive(Default, PartialEq)]
@@ -29,29 +22,6 @@ pub enum FetchState {
     InProgress,
 }
 
-#[derive(PartialEq, Default)]
-enum View {
-    #[default]
-    Weather,
-    Log,
-}
-
-#[derive(Default)]
-pub struct AppState {
-    // UI view state
-    current_view: View,
-    log_view_selected: bool,
-    weather_view_selected: bool,
-    /// location latitude
-    latitude_str: String,
-    /// location longitude
-    longitude_str: String,
-    location_error_modal_open: bool,
-    /// UI widgets
-    widgets: Widgets,
-    open_widgets: BTreeSet<String>,
-}
-
 /// Manages intersection between the UI state and weather data.
 pub struct AppController<D, F>
 where
@@ -62,7 +32,6 @@ where
     receiver: Receiver<D>,
     runtime: Runtime,
     state: AppState,
-    logs: Logs,
     /// Weather data
     pub data: D,
     _fetcher: PhantomData<F>,
@@ -89,7 +58,6 @@ where
         let state = AppState::new(cc);
         let (sender, receiver) = tokio::sync::watch::channel(D::default());
 
-        let logs = setup_logging();
         info!("Initializing app");
 
         let mut controller = Self {
@@ -98,7 +66,6 @@ where
             runtime,
             state,
             data,
-            logs,
             fetch_state: FetchState::default(),
             _fetcher: PhantomData,
         };
@@ -113,15 +80,17 @@ where
         // we could do this in the UI update area when fetch button clicked,
         // but then we'd either have to store a second set of vars for the parsed
         // float values, or re-parse them here. Neither of which are ideal.
-        let (lat, lon) =
-            match validate_lat_lon_input(&self.state.latitude_str, &self.state.longitude_str) {
-                Ok(res) => res,
-                Err(err) => {
-                    error!("Invalid location submitted: {err}");
-                    self.state.location_error_modal_open = true;
-                    return;
-                }
-            };
+        let (lat, lon) = match validate_lat_lon_input(
+            &self.state.weather_view.latitude_str,
+            &self.state.weather_view.longitude_str,
+        ) {
+            Ok(res) => res,
+            Err(err) => {
+                error!("Invalid location submitted: {err}");
+                self.state.weather_view.location_error_modal_open = true;
+                return;
+            }
+        };
 
         let sender = self.sender.clone();
 
@@ -167,9 +136,25 @@ where
             self.state.update_data(&*new);
         }
 
-        self.state
-            .update(ctx, frame, &self.logs, &mut self.fetch_state);
+        self.state.update(ctx, frame, &mut self.fetch_state);
     }
+}
+
+#[derive(PartialEq, Default)]
+enum View {
+    #[default]
+    Weather,
+    Log,
+}
+
+#[derive(Default)]
+pub struct AppState {
+    // UI view state
+    active_view: View,
+    log_view_selected: bool,
+    weather_view_selected: bool,
+    pub weather_view: WeatherView,
+    pub logs_view: LogsView,
 }
 
 impl AppState {
@@ -182,80 +167,14 @@ impl AppState {
         // }
 
         Self {
-            latitude_str: String::from(A51_LAT),
-            longitude_str: String::from(A51_LON),
             weather_view_selected: true,
-            widgets: Widgets::new(),
+            weather_view: WeatherView::new(),
+            logs_view: LogsView::new(),
             ..Default::default()
         }
     }
 
-    fn update_location(&mut self, ui: &mut Ui, fetch_state: &mut FetchState) {
-        ui.vertical_centered(|ui| {
-            ui.heading("Location");
-        });
-        ui.separator();
-
-        egui::Grid::new("location_grid")
-            .num_columns(2)
-            .spacing([40.0, 4.0])
-            .striped(true)
-            .show(ui, |ui| {
-                ui.add(Label::new("Latitude: "));
-
-                // latitude
-                ui.add(TextEdit::singleline(&mut self.latitude_str).hint_text(A51_LAT));
-                ui.end_row();
-
-                // longitude
-                ui.add(Label::new("Longitude: "));
-                ui.add(TextEdit::singleline(&mut self.longitude_str).hint_text(A51_LON));
-
-                ui.end_row();
-            });
-
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            if ui.button("Fetch").clicked() && *fetch_state == FetchState::Completed {
-                *fetch_state = FetchState::Requested;
-            }
-        });
-        ui.separator();
-    }
-
-    // display widget selectors
-    fn update_widget_toggle_pane(&mut self, ui: &mut Ui) {
-        ui.vertical_centered(|ui| {
-            ui.heading("Widgets");
-
-            ScrollArea::vertical().show(ui, |ui| {
-                ui.with_layout(Layout::top_down_justified(egui::Align::LEFT), |ui| {
-                    self.widgets.checkboxes(ui, &mut self.open_widgets);
-                });
-            });
-        });
-        ui.separator();
-    }
-
-    fn show_location_error_modal(&mut self, ui: &mut Ui) {
-        Modal::new(Id::new("location_error_modal")).show(ui.ctx(), |ui| {
-            ui.set_width(200.0);
-            ui.heading("Location invalid.");
-
-            ui.add_space(32.0);
-
-            egui::Sides::new().show(
-                ui,
-                |_ui| {},
-                |ui| {
-                    if ui.button("close").clicked() {
-                        self.location_error_modal_open = false;
-                    }
-                },
-            );
-        });
-    }
-
-    fn update(&mut self, ctx: &Ctx, _frame: &mut Frame, logs: &Logs, fetch_state: &mut FetchState) {
+    fn update(&mut self, ctx: &Ctx, _frame: &mut Frame, fetch_state: &mut FetchState) {
         // Top menu bar
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -263,7 +182,7 @@ impl AppState {
                     .toggle_value(&mut self.weather_view_selected, "Weather")
                     .clicked()
                 {
-                    self.current_view = View::Weather;
+                    self.active_view = View::Weather;
                     self.log_view_selected = false;
                     self.weather_view_selected = true;
                 }
@@ -271,7 +190,7 @@ impl AppState {
                     .toggle_value(&mut self.log_view_selected, "Log")
                     .clicked()
                 {
-                    self.current_view = View::Log;
+                    self.active_view = View::Log;
                     self.weather_view_selected = false;
                     self.log_view_selected = true;
                 }
@@ -279,45 +198,18 @@ impl AppState {
         });
 
         // Central panel for view content
-        egui::CentralPanel::default().show(ctx, |ui| {
-            match self.current_view {
-                View::Weather => {
-                    egui::SidePanel::right("right_panel")
-                        .resizable(false)
-                        .default_width(200.0)
-                        .min_width(200.0)
-                        .show(ui.ctx(), |ui| {
-                            self.update_location(ui, fetch_state);
-
-                            self.update_widget_toggle_pane(ui);
-                        });
-
-                    egui::CentralPanel::default().show(ui.ctx(), |ui| {
-                        // widget display area
-                        self.widgets.windows(ctx, &mut self.open_widgets);
-
-                        if self.location_error_modal_open {
-                            self.show_location_error_modal(ui);
-                        }
-                    });
-                }
-                View::Log => {
-                    // TODO don't clone the logs each time
-                    let logs = logs.get().join("\n");
-                    egui::CentralPanel::default().show(ui.ctx(), |ui| {
-                        // TODO improvements: highlighting on log syntax, colored differently for log levels
-                        let language = "rs";
-                        let theme =
-                            syntax_highlighting::CodeTheme::from_memory(ui.ctx(), ui.style());
-                        syntax_highlighting::code_view_ui(ui, &theme, &logs, language);
-                    });
-                }
+        egui::CentralPanel::default().show(ctx, |ui| match self.active_view {
+            View::Weather => {
+                self.weather_view.update(ui, fetch_state);
+            }
+            View::Log => {
+                self.logs_view.update(ui);
             }
         });
     }
 
     fn update_data<D: WeatherData>(&mut self, data: &D) {
-        self.widgets.update_data(data);
+        self.weather_view.widgets.update_data(data);
     }
 }
 
@@ -339,7 +231,7 @@ mod test {
     fn validate_lat_lon_happy() {
         assert_eq!(
             (37.233, -115.800),
-            validate_lat_lon_input(A51_LAT, A51_LON).unwrap()
+            validate_lat_lon_input(crate::A51_LAT, crate::A51_LON).unwrap()
         );
         assert_eq!(
             (37.0, -115.0),
