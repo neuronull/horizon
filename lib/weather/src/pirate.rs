@@ -51,16 +51,24 @@ impl WeatherData for ForecastResponse {
     fn current(&self) -> Option<&DataPoint> {
         self.currently.as_ref()
     }
+
+    fn hourly(&self) -> Option<&super::DataBlock> {
+        self.hourly.as_ref().map(|h| h.data.as_ref())
+    }
+
+    fn daily(&self) -> Option<&super::DataBlock> {
+        self.daily.as_ref().map(|h| h.data.as_ref())
+    }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct DataBlock {
     pub summary: String,
     pub icon: String,
     pub data: Vec<DataPoint>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct DataPoint {
     pub time: i64,
     pub summary: Option<String>,

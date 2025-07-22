@@ -11,10 +11,15 @@ pub use pirate::{ForecastResponse as PirateData, PirateWeather};
 // At present, just using the pirate data.
 // In the future if we support other weather APIs, we'll
 // want to introduce a proper abstraction layer.
-type DataPoint = pirate::DataPoint;
+pub type DataPoint = pirate::DataPoint;
+pub type DataBlock = Vec<DataPoint>;
 
 pub trait WeatherData {
     fn current(&self) -> Option<&DataPoint>;
+
+    fn hourly(&self) -> Option<&DataBlock>;
+
+    fn daily(&self) -> Option<&DataBlock>;
 }
 
 #[async_trait]
