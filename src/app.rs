@@ -182,6 +182,7 @@ impl AppState {
         // Top menu bar
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             ui.horizontal(|ui| {
+                // hopefully there is a cleaner way to acheive this:
                 if ui
                     .toggle_value(&mut self.weather_view_selected, "Weather")
                     .clicked()
