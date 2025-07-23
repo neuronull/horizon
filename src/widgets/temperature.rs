@@ -1,6 +1,4 @@
-use chrono::DateTime;
-use egui::{Color32, Context, Ui, Window};
-use egui_plot::{Legend, Line, Plot};
+use egui::{Context, Ui, Window};
 use lib_weather::{DataBlock, WeatherData};
 
 use super::{View, Widget};
@@ -37,6 +35,7 @@ impl View for TemperatureWidget {
         // ui.radio_value(&mut self.show_daily, false, "Hourly");
         // ui.radio_value(&mut self.show_daily, true, "Daily");
         // });
+        //
 
         let data = if self.show_daily {
             &self.daily
@@ -44,44 +43,54 @@ impl View for TemperatureWidget {
             &self.hourly
         };
 
-        if data.is_none() {
+        if let Some(data) = data {
+            self.temp_bar_chart(ui, data);
+        } else {
             ui.label("No forecast data available.");
-            return;
         }
-        let points: Vec<[f64; 2]> = data
-            .as_ref()
-            .unwrap()
+    }
+}
+
+impl TemperatureWidget {
+    fn temp_bar_chart(&self, ui: &mut Ui, data: &DataBlock) {
+        let bars: Vec<egui_plot::Bar> = data
             .iter()
-            .map(|dp| [dp.time as f64, dp.temperature.unwrap()])
+            .enumerate()
+            .map(|(i, point)| {
+                // Convert timestamp to hour string
+                let time_label = time::OffsetDateTime::from_unix_timestamp(point.time)
+                    .ok()
+                    .and_then(|dt| {
+                        dt.format(&time::format_description::parse("[hour]:[minute]").ok()?)
+                            .ok()
+                    })
+                    .unwrap_or_else(|| i.to_string());
+
+                egui_plot::Bar::new(i as f64, point.temperature.unwrap())
+                    .width(0.8)
+                    .name(time_label)
+                    .fill(temperature_color(point.temperature.unwrap()))
+            })
             .collect();
 
-        let color = if self.show_daily {
-            Color32::from_rgb(0, 150, 250) // Blue
-        } else {
-            Color32::from_rgb(250, 120, 0) // Orange
-        };
+        let chart = egui_plot::BarChart::new("Temperature", bars);
 
-        let line = Line::new("Temperature (°F)", points)
-            .color(color)
-            .fill_alpha(0.5);
-
-        Plot::new("temperature_plot")
-            .legend(Legend::default())
-            .view_aspect(2.5)
-            .show_x(true)
-            .show_y(true)
-            .set_margin_fraction(egui::vec2(0.05, 0.1))
-            .x_axis_formatter(move |timestamp, _range| {
-                let dt = DateTime::from_timestamp(timestamp.value as i64, 0).unwrap();
-                if self.show_daily {
-                    dt.format("%a %m/%d").to_string()
-                } else {
-                    dt.format("%a %H:%M").to_string()
-                }
-            })
-            .label_formatter(|_, val| format!("{:.1}°F", val.y))
+        egui_plot::Plot::new("temp_bar_chart")
+            .height(200.0)
             .show(ui, |plot_ui| {
-                plot_ui.line(line);
+                plot_ui.bar_chart(chart);
             });
+    }
+}
+
+fn temperature_color(temp: f64) -> egui::Color32 {
+    match temp {
+        t if t < 32.0 => egui::Color32::from_rgb(135, 206, 250), // freezing — light blue
+        t if t < 50.0 => egui::Color32::from_rgb(173, 216, 230), // cold — pale blue
+        t if t < 65.0 => egui::Color32::from_rgb(255, 255, 153), // cool — light yellow
+        t if t < 75.0 => egui::Color32::from_rgb(255, 215, 0),   // pleasant — gold
+        t if t < 85.0 => egui::Color32::from_rgb(255, 165, 0),   // warm — orange
+        t if t < 95.0 => egui::Color32::from_rgb(255, 99, 71),   // hot — tomato
+        _ => egui::Color32::from_rgb(178, 34, 34),               // very hot — firebrick
     }
 }
