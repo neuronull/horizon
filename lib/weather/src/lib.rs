@@ -20,6 +20,8 @@ pub trait WeatherData {
     fn hourly(&self) -> Option<&DataBlock>;
 
     fn daily(&self) -> Option<&DataBlock>;
+
+    fn time(&self) -> (&str, f64);
 }
 
 #[async_trait]

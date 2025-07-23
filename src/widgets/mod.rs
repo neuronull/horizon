@@ -4,6 +4,7 @@ use egui::{Context, Ui};
 use lib_weather::WeatherData;
 
 mod current;
+mod sun_moon;
 mod temperature;
 
 pub trait View {
@@ -39,6 +40,7 @@ impl Widgets {
             widgets: vec![
                 Box::<temperature::TemperatureWidget>::default(),
                 Box::<current::CurrentWidget>::default(),
+                Box::<sun_moon::SunMoon>::default(),
             ],
         }
     }

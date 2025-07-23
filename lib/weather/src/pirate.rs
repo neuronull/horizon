@@ -59,6 +59,10 @@ impl WeatherData for ForecastResponse {
     fn daily(&self) -> Option<&super::DataBlock> {
         self.daily.as_ref().map(|h| h.data.as_ref())
     }
+
+    fn time(&self) -> (&str, f64) {
+        (&self.timezone, self.offset)
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
