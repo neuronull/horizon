@@ -11,6 +11,20 @@ pub struct CurrentWidget {
     // feels like
     feels_like: Option<i16>,
     feels_like_color: Color32,
+    // precipitation
+    precipitation_prob: Option<i64>,
+    // humidity
+    humidity: Option<i64>,
+    // pressure
+    pressure: Option<f64>,
+    // wind
+    wind: Option<f64>,
+    // uv index
+    uv_index: Option<f64>,
+    // cloud cover
+    cloud_cover: Option<i64>,
+    // visibility
+    visibility: Option<f64>,
 }
 
 impl Widget for CurrentWidget {
@@ -43,6 +57,23 @@ impl Widget for CurrentWidget {
             } else {
                 self.feels_like_color = Color32::from_rgb(255, 255, 255);
             }
+
+            self.precipitation_prob = cur.precip_probability.map(|p| (p * 100.0).round() as i64);
+            dbg!(cur.precip_probability);
+
+            self.pressure = cur.pressure;
+
+            self.humidity = cur.humidity.map(|h| (h * 100.0).round() as i64);
+            dbg!(cur.humidity);
+
+            self.wind = cur.wind_speed;
+
+            self.uv_index = cur.uv_index;
+
+            self.cloud_cover = cur.cloud_cover.map(|c| (c * 100.0).round() as i64);
+            dbg!(cur.cloud_cover);
+
+            self.visibility = cur.visibility;
         }
     }
 }
@@ -70,6 +101,68 @@ impl View for CurrentWidget {
                 } else {
                     ui.colored_label(self.feels_like_color, "--");
                 }
+                ui.end_row();
+
+                // precipitation
+                ui.label("Percipitation prob (%): ");
+                ui.label(
+                    self.precipitation_prob
+                        .map_or("--".to_string(), |v| format!("{v}"))
+                        .to_string(),
+                );
+                ui.end_row();
+
+                // humidity
+                ui.label("Humidity (%): ");
+                ui.label(
+                    self.humidity
+                        .map_or("--".to_string(), |v| format!("{v}"))
+                        .to_string(),
+                );
+                ui.end_row();
+
+                ui.label("Pressure (millibars): ");
+                ui.label(
+                    self.pressure
+                        .map_or("--".to_string(), |v| format!("{v:.1}"))
+                        .to_string(),
+                );
+                ui.end_row();
+
+                // wind (mph)
+                ui.label("Wind (mph): ");
+                ui.label(
+                    self.wind
+                        .map_or("--".to_string(), |v| format!("{v:.1}"))
+                        .to_string(),
+                );
+                ui.end_row();
+
+                // uv index ()
+                ui.label("UV Index: ");
+                ui.label(
+                    self.uv_index
+                        .map_or("--".to_string(), |v| format!("{v:.1}"))
+                        .to_string(),
+                );
+                ui.end_row();
+
+                // cloud cover (%)
+                ui.label("Cloud cover (%): ");
+                ui.label(
+                    self.cloud_cover
+                        .map_or("--".to_string(), |v| format!("{v}"))
+                        .to_string(),
+                );
+                ui.end_row();
+
+                // visibility (miles)
+                ui.label("Visibility (miles): ");
+                ui.label(
+                    self.visibility
+                        .map_or("--".to_string(), |v| format!("{v:.1}"))
+                        .to_string(),
+                );
                 ui.end_row();
             });
     }
