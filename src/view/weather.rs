@@ -109,5 +109,9 @@ impl WeatherView {
             });
         });
         ui.separator();
+
+        if ui.button("Organize widgets").clicked() {
+            ui.ctx().memory_mut(egui::Memory::reset_areas);
+        }
     }
 }
