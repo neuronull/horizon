@@ -179,37 +179,39 @@ impl AppState {
     }
 
     fn update(&mut self, ctx: &Ctx, _frame: &mut Frame, fetch_state: &mut FetchState) {
-        // Top menu bar
-        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                // hopefully there is a cleaner way to acheive this:
-                if ui
-                    .toggle_value(&mut self.weather_view_selected, "Weather")
-                    .clicked()
-                {
-                    self.active_view = View::Weather;
-                    self.log_view_selected = false;
-                    self.weather_view_selected = true;
+        egui::CentralPanel::default().show(ctx, |ui| {
+            // Top menu bar
+            egui::TopBottomPanel::top("menu_bar").show(ui.ctx(), |ui| {
+                ui.horizontal(|ui| {
+                    // hopefully there is a cleaner way to acheive this:
+                    if ui
+                        .toggle_value(&mut self.weather_view_selected, "Weather")
+                        .clicked()
+                    {
+                        self.active_view = View::Weather;
+                        self.log_view_selected = false;
+                        self.weather_view_selected = true;
+                    }
+                    if ui
+                        .toggle_value(&mut self.log_view_selected, "Log")
+                        .clicked()
+                    {
+                        self.active_view = View::Log;
+                        self.weather_view_selected = false;
+                        self.log_view_selected = true;
+                    }
+                });
+            });
+
+            // Central panel for view content
+            egui::CentralPanel::default().show(ui.ctx(), |ui| match self.active_view {
+                View::Weather => {
+                    self.weather_view.update(ui, fetch_state);
                 }
-                if ui
-                    .toggle_value(&mut self.log_view_selected, "Log")
-                    .clicked()
-                {
-                    self.active_view = View::Log;
-                    self.weather_view_selected = false;
-                    self.log_view_selected = true;
+                View::Log => {
+                    self.logs_view.update(ui);
                 }
             });
-        });
-
-        // Central panel for view content
-        egui::CentralPanel::default().show(ctx, |ui| match self.active_view {
-            View::Weather => {
-                self.weather_view.update(ui, fetch_state);
-            }
-            View::Log => {
-                self.logs_view.update(ui);
-            }
         });
     }
 

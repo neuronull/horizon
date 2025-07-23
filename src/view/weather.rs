@@ -30,8 +30,6 @@ impl WeatherView {
     pub fn update(&mut self, ui: &mut Ui, fetch_state: &mut FetchState) {
         egui::SidePanel::right("right_panel")
             .resizable(false)
-            .default_width(200.0)
-            .min_width(200.0)
             .show(ui.ctx(), |ui| {
                 self.update_location(ui, fetch_state);
 

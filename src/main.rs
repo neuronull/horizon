@@ -7,9 +7,7 @@ fn main() -> eframe::Result {
     use lib_weather::{PirateData, PirateWeather};
 
     let native_options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_inner_size([800.0, 800.0])
-            .with_min_inner_size([600.0, 600.0]),
+        viewport: egui::ViewportBuilder::default().with_maximized(true),
         ..Default::default()
     };
     eframe::run_native(
