@@ -16,10 +16,14 @@ trait Widget {
         true
     }
 
+    /// Name of the widget
     fn name(&self) -> &'static str;
 
+    /// Render the widget visible
     fn show(&mut self, ctx: &Context, open: &mut bool);
 
+    /// Take what the widget needs from the latest `WeatherData`,
+    /// run any transformations once, and cache it in the widget's state.
     fn update_data(&mut self, data: &dyn WeatherData);
 }
 
