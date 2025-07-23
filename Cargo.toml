@@ -49,10 +49,6 @@ anyhow.workspace = true
 serde.workspace = true
 tracing.workspace = true
 
-# native
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-env_logger = "0.11.8"
-
 # web
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4.50"

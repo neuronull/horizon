@@ -6,8 +6,6 @@
 fn main() -> eframe::Result {
     use lib_weather::{PirateData, PirateWeather};
 
-    env_logger::init();
-
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([800.0, 800.0])
