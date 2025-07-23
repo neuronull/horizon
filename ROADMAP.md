@@ -8,9 +8,9 @@ This document outlines planned features, improvements, and milestones.
 - [x] Basic UI layout with egui
   - [x] select location
   - [x] widget toggle menu
-- [ ] Visual representatiion as modular data widget in the UI
-  - [ ] current weather widget
-  - [ ] temperature widget
+- [x] Visual representatiion as modular data widget in the UI
+  - [x] current weather widget
+  - [x] temperature widget
 - [ ] Deploy first version to GitHub Pages
 
 ---
@@ -18,11 +18,13 @@ This document outlines planned features, improvements, and milestones.
 ## 🧭  Short term goals
 
 - [ ] Support more widgets for other weather data
-  - [ ] humidity
-  - [ ] wind
+  - [ ] sun / moon
   - [ ] precipitation
+  - [ ] wind
   - [ ] AQI
   - [ ] Alerts
+- [ ] Geolocation toggle
+- [ ] Save state on app exit
 - [ ] Slider to view data (forecast mode)
 - [ ] GitHub Actions for auto-deploy
 
