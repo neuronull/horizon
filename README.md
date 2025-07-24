@@ -2,6 +2,8 @@
 
 A WIP weather visualization app.
 
+![Screenshot](./assets/horizon-screenshot.png)
+
 :pushpin: See the [project roadmap](ROADMAP.md) for planned features and milestones.
 
 :art: Built with [egui](https://github.com/emilk/egui)
@@ -9,10 +11,6 @@ A WIP weather visualization app.
 :zap: powered by [OpenWeatherMap](https://openweathermap.org/)
 
 :rocket: deployed via [GitHub Pages](https://pages.github.com/).
-
-## Vision
-
-![Weather mode](./assets/horizon-vision.png)
 
 ## Dependencies
 
