@@ -1,3 +1,4 @@
+use chrono::DateTime;
 use chrono_tz::Tz;
 use egui::{Context, Ui, Window};
 use egui_plot::{Corner, Legend, Plot};
@@ -11,7 +12,6 @@ pub struct TemperatureWidget {
     hourly: Option<DataBlock>,
     daily: Option<DataBlock>,
     timezone: String,
-    offset: i32,
 }
 
 impl Widget for TemperatureWidget {
@@ -31,8 +31,7 @@ impl Widget for TemperatureWidget {
         self.hourly = data.hourly().cloned();
         self.daily = data.daily().cloned();
         let time = data.time();
-        self.timezone = time.0.to_owned();
-        self.offset = time.1 as i32;
+        time.0.clone_into(&mut self.timezone);
     }
 }
 
@@ -78,20 +77,16 @@ impl TemperatureWidget {
             .legend(Legend::default().position(Corner::RightTop))
             .x_axis_formatter({
                 move |x, _range| {
-                    use chrono::{DateTime, NaiveDateTime, Utc};
-
-                    NaiveDateTime::from_timestamp_opt(x.value as i64, 0)
-                        .map(|naive| DateTime::<Utc>::from_utc(naive, Utc).with_timezone(&tz))
+                    DateTime::from_timestamp(x.value as i64, 0)
+                        .map(|dt| dt.with_timezone(&tz))
                         .map_or_else(|| "--:--".into(), |dt| dt.format("%H:%M").to_string())
                 }
             })
             .y_axis_formatter(|y, _| format!("{:.0}°F", y.value))
             .label_formatter({
                 move |name, value| {
-                    use chrono::{DateTime, NaiveDateTime, Utc};
-
-                    let time_str = NaiveDateTime::from_timestamp_opt(value.x as i64, 0)
-                        .map(|naive| DateTime::<Utc>::from_utc(naive, Utc).with_timezone(&tz))
+                    let time_str = DateTime::from_timestamp(value.x as i64, 0)
+                        .map(|dt| dt.with_timezone(&tz))
                         .map_or_else(|| "--:--".into(), |dt| dt.format("%H:%M").to_string());
 
                     format!("{name}: {:.1}°F at {}", value.y, time_str)
