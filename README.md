@@ -10,6 +10,10 @@ A WIP weather visualization app.
 
 :rocket: deployed via [GitHub Pages](https://pages.github.com/).
 
+## Vision
+
+![Weather mode](./assets/horizon-vision.png)
+
 ## Dependencies
 
 TBD
