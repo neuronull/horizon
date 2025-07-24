@@ -49,6 +49,7 @@ tracing-subscriber = { version = "0.3", features = ["fmt", "chrono", "env-filter
 anyhow.workspace = true
 serde.workspace = true
 tracing.workspace = true
+chrono-tz = "0.10.4"
 
 # web
 [target.'cfg(target_arch = "wasm32")'.dependencies]

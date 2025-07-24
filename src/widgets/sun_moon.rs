@@ -81,7 +81,6 @@ impl SunMoon {
             let pos_end = center + egui::vec2(radius * angle_end.cos(), -radius * angle_end.sin());
 
             let t = i as f32 / 100.0;
-            let angle = std::f32::consts::PI * t; // 0 to PI for a half-circle
             let color = sky_color_for_time(t, t_sunrise, t_sunset);
 
             painter.add(egui::Shape::line_segment(

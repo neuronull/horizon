@@ -1,4 +1,6 @@
+use chrono_tz::Tz;
 use egui::{Context, Ui, Window};
+use egui_plot::{Corner, Legend, Plot};
 use lib_weather::{DataBlock, WeatherData};
 
 use super::{View, Widget};
@@ -8,6 +10,8 @@ pub struct TemperatureWidget {
     show_daily: bool,
     hourly: Option<DataBlock>,
     daily: Option<DataBlock>,
+    timezone: String,
+    offset: i32,
 }
 
 impl Widget for TemperatureWidget {
@@ -26,6 +30,9 @@ impl Widget for TemperatureWidget {
     fn update_data(&mut self, data: &dyn WeatherData) {
         self.hourly = data.hourly().cloned();
         self.daily = data.daily().cloned();
+        let time = data.time();
+        self.timezone = time.0.to_owned();
+        self.offset = time.1 as i32;
     }
 }
 
@@ -55,28 +62,41 @@ impl TemperatureWidget {
     fn temp_bar_chart(&self, ui: &mut Ui, data: &DataBlock) {
         let bars: Vec<egui_plot::Bar> = data
             .iter()
-            .enumerate()
-            .map(|(i, point)| {
-                // Convert timestamp to hour string
-                let time_label = time::OffsetDateTime::from_unix_timestamp(point.time)
-                    .ok()
-                    .and_then(|dt| {
-                        dt.format(&time::format_description::parse("[hour]:[minute]").ok()?)
-                            .ok()
-                    })
-                    .unwrap_or_else(|| i.to_string());
-
-                egui_plot::Bar::new(i as f64, point.temperature.unwrap())
-                    .width(0.8)
-                    .name(time_label)
-                    .fill(temperature_color(point.temperature.unwrap()))
+            .map(|point| {
+                let x = point.time as f64;
+                let y = point.temperature.unwrap_or(0.0);
+                egui_plot::Bar::new(x, y)
+                    .width(300.0) // about 5 minutes wide
+                    .fill(temperature_color(y))
             })
             .collect();
 
         let chart = egui_plot::BarChart::new("Temperature", bars);
+        let tz: Tz = self.timezone.parse().unwrap_or(chrono_tz::UTC);
 
-        egui_plot::Plot::new("temp_bar_chart")
-            .height(200.0)
+        Plot::new("temp_bar_chart")
+            .legend(Legend::default().position(Corner::RightTop))
+            .x_axis_formatter({
+                move |x, _range| {
+                    use chrono::{DateTime, NaiveDateTime, Utc};
+
+                    NaiveDateTime::from_timestamp_opt(x.value as i64, 0)
+                        .map(|naive| DateTime::<Utc>::from_utc(naive, Utc).with_timezone(&tz))
+                        .map_or_else(|| "--:--".into(), |dt| dt.format("%H:%M").to_string())
+                }
+            })
+            .y_axis_formatter(|y, _| format!("{:.0}°F", y.value))
+            .label_formatter({
+                move |name, value| {
+                    use chrono::{DateTime, NaiveDateTime, Utc};
+
+                    let time_str = NaiveDateTime::from_timestamp_opt(value.x as i64, 0)
+                        .map(|naive| DateTime::<Utc>::from_utc(naive, Utc).with_timezone(&tz))
+                        .map_or_else(|| "--:--".into(), |dt| dt.format("%H:%M").to_string());
+
+                    format!("{name}: {:.1}°F at {}", value.y, time_str)
+                }
+            })
             .show(ui, |plot_ui| {
                 plot_ui.bar_chart(chart);
             });
