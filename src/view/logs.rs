@@ -14,6 +14,9 @@ impl LogsView {
         Self { logs }
     }
 
+    /// # Panics
+    ///
+    /// Will panic if failure to acquire lock
     pub fn update(&mut self, ui: &Ui) {
         let logs = self.logs.lock().unwrap().join("\n");
 
