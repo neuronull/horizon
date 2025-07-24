@@ -1,10 +1,9 @@
-use egui::{Color32, Context, Grid, Ui, Window};
-use lib_weather::WeatherData;
-
-use egui::{Painter, Pos2, Rect, Shape, Stroke};
 use std::f32::consts::PI;
 
+use egui::{Color32, Context, Painter, Pos2, Stroke, Ui, Window};
+
 use super::{View, Widget};
+use lib_weather::WeatherData;
 
 #[derive(Default)]
 pub struct SunMoon {
