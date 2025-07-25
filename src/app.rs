@@ -1,10 +1,10 @@
 use std::marker::{PhantomData, Send};
-use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result};
 use eframe::{CreationContext, Frame};
 use egui::Context as Ctx;
 use tokio::runtime::{Builder, Runtime};
+use tokio::sync::mpsc;
 use tokio::sync::watch::{Receiver, Sender};
 use tracing::{error, info};
 
@@ -55,11 +55,12 @@ where
             .build()
             .expect("Failed to build runtime");
 
-        let logs = Arc::new(Mutex::new(Vec::<String>::new()));
-        setup_logging(Arc::clone(&logs));
+        let (logtx, logrx) = mpsc::channel::<String>(100);
+
+        setup_logging(logtx);
 
         let data = D::default();
-        let state = AppState::new(cc, logs);
+        let state = AppState::new(cc, logrx);
         let (sender, receiver) = tokio::sync::watch::channel(D::default());
 
         info!("Initializing app");
@@ -151,7 +152,6 @@ enum View {
     Log,
 }
 
-#[derive(Default)]
 pub struct AppState {
     // UI view state
     active_view: View,
@@ -163,7 +163,7 @@ pub struct AppState {
 
 impl AppState {
     /// Called once before the first frame.
-    pub fn new(_cc: &CreationContext<'_>, logs: Arc<Mutex<Vec<String>>>) -> Self {
+    pub fn new(_cc: &CreationContext<'_>, logrx: mpsc::Receiver<String>) -> Self {
         // TODO: re-enable for feature to save state
         // Load previous app state (if any).
         // if let Some(storage) = cc.storage {
@@ -173,8 +173,9 @@ impl AppState {
         Self {
             weather_view_selected: true,
             weather_view: WeatherView::new(),
-            logs_view: LogsView::new(logs),
-            ..Default::default()
+            logs_view: LogsView::new(logrx),
+            active_view: View::default(),
+            log_view_selected: false,
         }
     }
 

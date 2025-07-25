@@ -1,12 +1,12 @@
 use std::io::{self, Write};
-use std::sync::{Arc, Mutex};
+use tokio::sync::mpsc::Sender;
 use tracing_subscriber::fmt::{self, MakeWriter};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::EnvFilter;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Logs {
-    logs: Arc<Mutex<Vec<String>>>,
+    tx: Sender<String>,
 }
 
 impl Write for Logs {
@@ -14,8 +14,8 @@ impl Write for Logs {
         let s = std::str::from_utf8(buf).unwrap_or_default();
 
         if !s.trim().is_empty() {
-            let mut logs = self.logs.lock().unwrap();
-            logs.push(s.to_string());
+            // TODO check result
+            self.tx.try_send(s.to_string());
         }
         Ok(buf.len())
     }
@@ -31,9 +31,9 @@ pub struct LogWriter {
 }
 
 impl LogWriter {
-    pub fn new(logs: Arc<Mutex<Vec<String>>>) -> Self {
+    pub fn new(tx: Sender<String>) -> Self {
         Self {
-            writer: Logs { logs },
+            writer: Logs { tx },
         }
     }
 }
@@ -49,8 +49,8 @@ impl<'a> MakeWriter<'a> for LogWriter {
 /// # Panics
 ///
 /// Will panic if unable to setup subscriber.
-pub fn setup_logging(logs: Arc<Mutex<Vec<String>>>) {
-    let make_writer = LogWriter::new(logs);
+pub fn setup_logging(tx: Sender<String>) {
+    let make_writer = LogWriter::new(tx);
 
     let env_filter = EnvFilter::new("horizon=info,lib_weather=info");
 
