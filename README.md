@@ -2,7 +2,7 @@
 
 A WIP weather visualization app.
 
-![Screenshot](./assets/horizon-screenshot.png)
+![Screenshot](./doc-assets/horizon-screenshot.png)
 
 :pushpin: See the [project roadmap](ROADMAP.md) for planned features and milestones.
 
