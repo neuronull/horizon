@@ -1,9 +1,11 @@
-use std::marker::{PhantomData, Send};
-
 use anyhow::{Context, Result};
 use eframe::{CreationContext, Frame};
 use egui::Context as Ctx;
+use std::marker::PhantomData;
+
+#[cfg(not(target_arch = "wasm32"))]
 use tokio::runtime::{Builder, Runtime};
+
 use tokio::sync::mpsc;
 use tokio::sync::watch::{Receiver, Sender};
 use tracing::{error, info};
@@ -26,11 +28,12 @@ pub enum FetchState {
 /// Manages intersection between the UI state and weather data.
 pub struct AppController<D, F>
 where
-    D: WeatherData + Default + Sync + Send + 'static,
-    F: WeatherFetch<Output = D> + Send,
+    D: WeatherData + Default + Sync + 'static,
+    F: WeatherFetch<Output = D>,
 {
     sender: Sender<D>,
     receiver: Receiver<D>,
+    #[cfg(not(target_arch = "wasm32"))]
     runtime: Runtime,
     state: AppState,
     /// Weather data
@@ -42,14 +45,15 @@ where
 
 impl<D, F> AppController<D, F>
 where
-    D: WeatherData + Default + Sync + Send + 'static,
-    F: WeatherFetch<Output = D> + Send,
+    D: WeatherData + Default + Sync + 'static,
+    F: WeatherFetch<Output = D>,
 {
     /// # Panics
     ///
     /// Will panic if tokio runtime build fails
     #[must_use]
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        #[cfg(not(target_arch = "wasm32"))]
         let runtime = Builder::new_current_thread()
             .enable_all()
             .build()
@@ -68,6 +72,7 @@ where
         let mut controller = Self {
             sender,
             receiver,
+            #[cfg(not(target_arch = "wasm32"))]
             runtime,
             state,
             data,
@@ -99,8 +104,9 @@ where
 
         let sender = self.sender.clone();
 
-        self.runtime.block_on(async {
-            tokio::spawn(async move {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.runtime.block_on(async {
                 info!("Fetching weather data at ({lat}, {lon})");
 
                 match F::fetch_weather(lat, lon).await {
@@ -111,17 +117,31 @@ where
                     }
                     Err(err) => error!("{err}"),
                 }
-            })
-            .await
-            .expect("error joining thread");
-        });
+            });
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            wasm_bindgen_futures::spawn_local(async move {
+                info!("Fetching weather data at ({lat}, {lon})");
+
+                match F::fetch_weather(lat, lon).await {
+                    Ok(response) => {
+                        if let Err(err) = sender.send(response) {
+                            error!("{err}");
+                        }
+                    }
+                    Err(err) => error!("{err}"),
+                }
+            });
+        }
     }
 }
 
 impl<D, F> eframe::App for AppController<D, F>
 where
-    D: WeatherData + Default + Sync + Send + 'static,
-    F: WeatherFetch<Output = D> + Send,
+    D: WeatherData + Default + Sync + 'static,
+    F: WeatherFetch<Output = D>,
 {
     // TODO: re-enable for feature to save state
     // fn save(&mut self, storage: &mut dyn eframe::Storage) {

@@ -1,6 +1,5 @@
 use anyhow::Result;
 use async_trait::async_trait;
-use reqwest::Client;
 use serde::Deserialize;
 use tracing::info;
 
@@ -10,11 +9,34 @@ const BASE_URL: &str = "https://api.pirateweather.net";
 
 pub struct PirateWeather {}
 
-#[async_trait]
+// Send is not compatible with WASM
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl WeatherFetch for PirateWeather {
     type Output = ForecastResponse;
 
+    #[cfg(target_arch = "wasm32")]
     async fn fetch_weather(lat: f64, lon: f64) -> Result<Self::Output> {
+        use gloo_net::http::Request;
+
+        let api_key = env!("PIRATEWEATHER_API_KEY");
+        let url = format!("{BASE_URL}/forecast/{api_key}/{lat},{lon}?units=us");
+
+        let response = Request::get(&url)
+            .send()
+            .await?
+            .json::<ForecastResponse>()
+            .await?;
+
+        info!("aye... fetched pirate weather data");
+
+        Ok(response)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    async fn fetch_weather(lat: f64, lon: f64) -> Result<Self::Output> {
+        use reqwest::Client;
+
         let api_key = std::env::var("PIRATEWEATHER_API_KEY")?;
         let url = format!("{BASE_URL}/forecast/{api_key}/{lat},{lon}?units=us");
 

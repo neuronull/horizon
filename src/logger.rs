@@ -54,12 +54,41 @@ pub fn setup_logging(tx: Sender<String>) {
 
     let env_filter = EnvFilter::new("horizon=info,lib_weather=info");
 
-    let subscriber = tracing_subscriber::registry().with(env_filter).with(
-        fmt::layer()
-            .with_writer(make_writer)
-            .with_ansi(false)
-            .with_target(false),
-    );
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let subscriber = tracing_subscriber::registry().with(env_filter).with(
+            fmt::layer()
+                .with_writer(make_writer)
+                .with_ansi(false)
+                .with_target(false),
+        );
+        tracing::subscriber::set_global_default(subscriber)
+            .expect("setting default subscriber failed");
+    }
 
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    #[cfg(target_arch = "wasm32")]
+    {
+        use tracing_subscriber::fmt::{format::Writer, time::FormatTime};
+        use web_sys::js_sys::Date;
+
+        #[derive(Debug)]
+        struct WasmTime;
+
+        impl FormatTime for WasmTime {
+            fn format_time(&self, w: &mut Writer<'_>) -> Result<(), std::fmt::Error> {
+                let now = Date::new_0();
+                write!(w, "[{}]", now.to_locale_time_string("en-US"))
+            }
+        }
+        let subscriber = tracing_subscriber::registry().with(env_filter).with(
+            fmt::layer()
+                .with_writer(make_writer)
+                .with_ansi(false)
+                .with_target(false)
+                .with_timer(WasmTime),
+        );
+
+        tracing::subscriber::set_global_default(subscriber)
+            .expect("setting default subscriber failed");
+    }
 }

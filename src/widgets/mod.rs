@@ -30,7 +30,7 @@ trait Widget {
 
 #[derive(Default)]
 pub struct Widgets {
-    widgets: Vec<Box<dyn Widget + Send>>,
+    widgets: Vec<Box<dyn Widget>>,
 }
 
 impl Widgets {
