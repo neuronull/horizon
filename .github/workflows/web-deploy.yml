@@ -1,0 +1,31 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust and trunk
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo install trunk
+
+      - name: Build with trunk
+        env:
+          PIRATEWEATHER_API_KEY: ${{ secrets.PIRATEWEATHER_API_KEY }}
+        run: |
+          export PIRATEWEATHER_API_KEY=${PIRATEWEATHER_API_KEY}
+          trunk build --release --public-url /horizon/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
