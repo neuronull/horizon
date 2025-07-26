@@ -8,7 +8,7 @@ A WIP weather visualization app.
 
 :art: Built with [egui](https://github.com/emilk/egui)
 
-:zap: powered by [OpenWeatherMap](https://openweathermap.org/)
+:zap: powered by [Pirate Weather](https://pirateweather.net/en/latest/)
 
 :rocket: deployed via [GitHub Pages](https://pages.github.com/).
 
