@@ -159,6 +159,7 @@ where
         if let Ok(true) = self.receiver.has_changed() {
             let new = self.receiver.borrow_and_update();
             self.state.update_data(&*new);
+            self.fetch_state = FetchState::Completed;
         }
 
         self.state.update(ctx, frame, &mut self.fetch_state);
