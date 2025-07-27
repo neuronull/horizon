@@ -11,7 +11,7 @@ This document outlines planned features, improvements, and milestones.
 - [x] Visual representatiion as modular data widget in the UI
   - [x] current weather widget
   - [x] temperature widget
-- [ ] Deploy first version to GitHub Pages
+- [x] Deploy first version to GitHub Pages
 
 ---
 
