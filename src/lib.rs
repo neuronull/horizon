@@ -6,7 +6,7 @@ mod logger;
 mod view;
 mod widgets;
 
-pub use app::{AppController, FetchState};
+pub use app::{AppController, AppState, FetchState};
 pub use logger::{setup_logging, Logs};
 pub use view::{LogsView, WeatherView};
 pub use widgets::Widgets;

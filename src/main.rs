@@ -1,11 +1,23 @@
 #![warn(clippy::pedantic)]
 #![warn(clippy::all, rust_2018_idioms)]
 
+use tokio::sync::mpsc::{self, Receiver};
+
+use horizon::{AppController, AppState};
 use lib_weather::{PirateData, PirateWeather};
+
+fn init_logging() -> Receiver<String> {
+    let (logtx, logrx) = mpsc::channel::<String>(100);
+    horizon::setup_logging(logtx);
+    logrx
+}
 
 // native:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
+    let logrx = init_logging();
+    let state = AppState::new(logrx);
+
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_maximized(true),
         ..Default::default()
@@ -13,10 +25,10 @@ fn main() -> eframe::Result {
     eframe::run_native(
         horizon::APP_NAME,
         native_options,
-        Box::new(|cc| {
-            Ok(Box::new(
-                horizon::AppController::<PirateData, PirateWeather>::new(cc),
-            ))
+        Box::new(|_cc| {
+            Ok(Box::new(AppController::<PirateData, PirateWeather>::new(
+                state,
+            )))
         }),
     )
 }
@@ -25,6 +37,9 @@ fn main() -> eframe::Result {
 #[cfg(target_arch = "wasm32")]
 fn main() {
     use eframe::wasm_bindgen::JsCast as _;
+
+    let logrx = init_logging();
+    let state = AppState::new(logrx);
 
     let web_options = eframe::WebOptions::default();
 
@@ -44,10 +59,10 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| {
-                    Ok(Box::new(
-                        horizon::AppController::<PirateData, PirateWeather>::new(cc),
-                    ))
+                Box::new(|_cc| {
+                    Ok(Box::new(AppController::<PirateData, PirateWeather>::new(
+                        state,
+                    )))
                 }),
             )
             .await;

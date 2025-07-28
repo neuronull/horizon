@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use eframe::{CreationContext, Frame};
+use eframe::Frame;
 use egui::Context as Ctx;
 use std::marker::PhantomData;
 
@@ -10,7 +10,7 @@ use tokio::sync::mpsc;
 use tokio::sync::watch::{Receiver, Sender};
 use tracing::{error, info};
 
-use super::{setup_logging, LogsView, WeatherView};
+use super::{LogsView, WeatherView};
 use lib_weather::{WeatherData, WeatherFetch};
 
 /// State machine for fetching weather data
@@ -31,16 +31,14 @@ where
     D: WeatherData + Default + Sync + 'static,
     F: WeatherFetch<Output = D>,
 {
-    sender: Sender<D>,
-    receiver: Receiver<D>,
+    sender: Sender<Result<D>>,
+    receiver: Receiver<Result<D>>,
     #[cfg(not(target_arch = "wasm32"))]
     runtime: Runtime,
     state: AppState,
     /// Weather data
     pub data: D,
     _fetcher: PhantomData<F>,
-    /// state of the weather data fetch operation
-    fetch_state: FetchState,
 }
 
 impl<D, F> AppController<D, F>
@@ -52,20 +50,15 @@ where
     ///
     /// Will panic if tokio runtime build fails
     #[must_use]
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(state: AppState) -> Self {
         #[cfg(not(target_arch = "wasm32"))]
         let runtime = Builder::new_current_thread()
             .enable_all()
             .build()
             .expect("Failed to build runtime");
 
-        let (logtx, logrx) = mpsc::channel::<String>(100);
-
-        setup_logging(logtx);
-
         let data = D::default();
-        let state = AppState::new(cc, logrx);
-        let (sender, receiver) = tokio::sync::watch::channel(D::default());
+        let (sender, receiver) = tokio::sync::watch::channel(Ok(D::default()));
 
         info!("Initializing app");
 
@@ -76,7 +69,6 @@ where
             runtime,
             state,
             data,
-            fetch_state: FetchState::default(),
             _fetcher: PhantomData,
         };
 
@@ -98,6 +90,7 @@ where
             Err(err) => {
                 error!("Invalid location submitted: {err}");
                 self.state.weather_view.location_error_modal_open = true;
+                self.state.fetch_state = FetchState::Completed;
                 return;
             }
         };
@@ -109,13 +102,9 @@ where
             self.runtime.block_on(async {
                 info!("Fetching weather data at ({lat}, {lon})");
 
-                match F::fetch_weather(lat, lon).await {
-                    Ok(response) => {
-                        if let Err(err) = sender.send(response) {
-                            error!("{err}");
-                        }
-                    }
-                    Err(err) => error!("{err}"),
+                let response = F::fetch_weather(lat, lon).await;
+                if let Err(err) = sender.send(response) {
+                    error!("{err}");
                 }
             });
         }
@@ -125,16 +114,34 @@ where
             wasm_bindgen_futures::spawn_local(async move {
                 info!("Fetching weather data at ({lat}, {lon})");
 
-                match F::fetch_weather(lat, lon).await {
-                    Ok(response) => {
-                        if let Err(err) = sender.send(response) {
-                            error!("{err}");
-                        }
-                    }
-                    Err(err) => error!("{err}"),
+                let response = F::fetch_weather(lat, lon).await;
+                if let Err(err) = sender.send(response) {
+                    error!("{err}");
                 }
             });
         }
+    }
+
+    fn update(&mut self, ctx: &Ctx) {
+        if self.state.fetch_state == FetchState::Requested {
+            self.state.fetch_state = FetchState::InProgress;
+            self.fetch();
+        }
+
+        if let Ok(true) = self.receiver.has_changed() {
+            match &*self.receiver.borrow_and_update() {
+                Ok(data) => {
+                    self.state.update_data(data);
+                    self.state.fetch_state = FetchState::Completed;
+                }
+                Err(err) => {
+                    error!("{err}");
+                    self.state.fetch_state = FetchState::Completed;
+                }
+            }
+        }
+
+        self.state.update(ctx);
     }
 }
 
@@ -150,19 +157,8 @@ where
     //     eframe::set_value(storage, eframe::APP_KEY, &*state);
     // }
 
-    fn update(&mut self, ctx: &Ctx, frame: &mut Frame) {
-        if self.fetch_state == FetchState::Requested {
-            self.fetch_state = FetchState::InProgress;
-            self.fetch();
-        }
-
-        if let Ok(true) = self.receiver.has_changed() {
-            let new = self.receiver.borrow_and_update();
-            self.state.update_data(&*new);
-            self.fetch_state = FetchState::Completed;
-        }
-
-        self.state.update(ctx, frame, &mut self.fetch_state);
+    fn update(&mut self, ctx: &Ctx, _frame: &mut Frame) {
+        self.update(ctx);
     }
 }
 
@@ -180,11 +176,13 @@ pub struct AppState {
     weather_view_selected: bool,
     pub weather_view: WeatherView,
     pub logs_view: LogsView,
+    /// state of the weather data fetch operation
+    fetch_state: FetchState,
 }
 
 impl AppState {
     /// Called once before the first frame.
-    pub fn new(_cc: &CreationContext<'_>, logrx: mpsc::Receiver<String>) -> Self {
+    pub fn new(logrx: mpsc::Receiver<String>) -> Self {
         // TODO: re-enable for feature to save state
         // Load previous app state (if any).
         // if let Some(storage) = cc.storage {
@@ -197,10 +195,11 @@ impl AppState {
             logs_view: LogsView::new(logrx),
             active_view: View::default(),
             log_view_selected: false,
+            fetch_state: FetchState::default(),
         }
     }
 
-    fn update(&mut self, ctx: &Ctx, _frame: &mut Frame, fetch_state: &mut FetchState) {
+    fn update(&mut self, ctx: &Ctx) {
         egui::CentralPanel::default().show(ctx, |ui| {
             // Top menu bar
             egui::TopBottomPanel::top("menu_bar").show(ui.ctx(), |ui| {
@@ -228,7 +227,7 @@ impl AppState {
             // Central panel for view content
             egui::CentralPanel::default().show(ui.ctx(), |ui| match self.active_view {
                 View::Weather => {
-                    self.weather_view.update(ui, fetch_state);
+                    self.weather_view.update(ui, &mut self.fetch_state);
                 }
                 View::Log => {
                     self.logs_view.update(ui);
@@ -256,6 +255,11 @@ fn validate_lat_lon_input(lat: &str, lon: &str) -> Result<(f64, f64)> {
 
 #[cfg(test)]
 mod test {
+    use anyhow::anyhow;
+    use egui_kittest::kittest::Queryable;
+    use egui_kittest::Harness;
+    use lib_weather::PirateData;
+
     use super::*;
 
     #[test]
@@ -286,5 +290,72 @@ mod test {
     #[should_panic(expected = "Invalid input: number not parseable as float.")]
     fn validate_lat_lon_fail_nonnumber_lon() {
         validate_lat_lon_input("37", "fiftyone").unwrap();
+    }
+
+    struct StubWeatherFails {}
+
+    #[async_trait::async_trait]
+    impl WeatherFetch for StubWeatherFails {
+        type Output = PirateData;
+
+        async fn fetch_weather(_lat: f64, _lon: f64) -> Result<Self::Output> {
+            Err(anyhow!("Failed to fetch weather"))
+        }
+    }
+
+    struct StubWeatherSucceeds {}
+
+    #[async_trait::async_trait]
+    impl WeatherFetch for StubWeatherSucceeds {
+        type Output = PirateData;
+
+        async fn fetch_weather(_lat: f64, _lon: f64) -> Result<Self::Output> {
+            Ok(PirateData::default())
+        }
+    }
+
+    #[test]
+    fn fetch_failure_marked_as_completed() {
+        let (_logtx, logrx) = mpsc::channel::<String>(100);
+        let state = AppState::new(logrx);
+
+        let initial_state = AppController::<PirateData, StubWeatherFails>::new(state);
+
+        let mut harness = Harness::new_state(
+            |ctx, initial_state| {
+                initial_state.update(ctx);
+            },
+            initial_state,
+        );
+
+        harness.get_by_label("Latitude: ").type_text("1");
+        harness.get_by_label("Latitude: ").type_text("2");
+        harness.get_by_label("Fetch").click();
+
+        harness.run();
+
+        assert!(harness.state().state.fetch_state == FetchState::Completed);
+    }
+
+    #[test]
+    fn fetch_success_marked_as_completed() {
+        let (_logtx, logrx) = mpsc::channel::<String>(100);
+        let state = AppState::new(logrx);
+        let initial_state = AppController::<PirateData, StubWeatherSucceeds>::new(state);
+
+        let mut harness = Harness::new_state(
+            |ctx, initial_state| {
+                initial_state.update(ctx);
+            },
+            initial_state,
+        );
+
+        harness.get_by_label("Latitude: ").type_text("1");
+        harness.get_by_label("Latitude: ").type_text("2");
+        harness.get_by_label("Fetch").click();
+
+        harness.run();
+
+        assert!(harness.state().state.fetch_state == FetchState::Completed);
     }
 }
