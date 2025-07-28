@@ -128,13 +128,12 @@ where
             match &*self.receiver.borrow_and_update() {
                 Ok(data) => {
                     self.state.update_data(data);
-                    self.state.fetch_state = FetchState::Completed;
                 }
                 Err(err) => {
                     error!("{err}");
-                    self.state.fetch_state = FetchState::Completed;
                 }
             }
+            self.state.fetch_state = FetchState::Completed;
         }
 
         self.state.update(ctx);
