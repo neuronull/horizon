@@ -7,25 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [0.1.0] 28.07.2025
 ### Added
-- README, LICENSE, .gitignore
-- Cargo.toml
-- skeleton of src/ (main, lib, app)
+- Ability to enter latitude and longitude coordinates
+- Fetch weather data with PirateWeather API asynchronously
+- Widget toggle View
+- Temperature forecast graphical widget
+- Sun and moon graphical widget
+- Current weather widget
+- Log View populated asynchronously
+- Support to build both native desktop and web
+- GHA for unit tests, web deploy
 
 ---
 
 ## Release process
 
-1. Update the version in `Cargo.toml`.
-2. Update this `CHANGELOG.md` with a new entry.
-3. Commit the changes:
+1. Update this `CHANGELOG.md` with a new entry.
+2. Commit the changes:
    ```bash
    git commit -am "Release vX.Y.Z"
    ```
-4. Tag the release:
+3. Tag the release:
    ```bash
    git tag -a vX.Y.Z -m "Release vX.Y.Z"
    git push origin vX.Y.Z
    ```
-5. (Optional) Create a [GitHub Release](https://github.com/your-username/your-repo/releases) with notes.
+4. Create a GH release.
+5. Bump the version in `Cargo.toml`.
