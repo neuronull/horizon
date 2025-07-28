@@ -265,6 +265,18 @@ mod test {
         );
         assert_eq!(
             (37.0, -115.0),
+            validate_lat_lon_input("37°", "-115°").unwrap()
+        );
+    }
+
+    #[test]
+    fn validate_lat_lon_happy_with_degrees() {
+        assert_eq!(
+            (37.233, -115.800),
+            validate_lat_lon_input(crate::A51_LAT, crate::A51_LON).unwrap()
+        );
+        assert_eq!(
+            (37.0, -115.0),
             validate_lat_lon_input("37", "-115").unwrap()
         );
     }
