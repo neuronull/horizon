@@ -246,6 +246,8 @@ impl AppState {
 fn validate_lat_lon_input(lat: &str, lon: &str) -> Result<(f64, f64)> {
     let validate = |input: &str| -> Result<f64> {
         input
+            .trim()
+            .replace("°", "")
             .parse::<f64>()
             .context("Invalid input: number not parseable as float.")
     };
