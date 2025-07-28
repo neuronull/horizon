@@ -97,28 +97,24 @@ where
 
         let sender = self.sender.clone();
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            self.runtime.block_on(async {
-                info!("Fetching weather data at ({lat}, {lon})");
+        info!("Fetching weather data at ({lat}, {lon})");
 
-                let response = F::fetch_weather(lat, lon).await;
-                if let Err(err) = sender.send(response) {
-                    error!("{err}");
-                }
-            });
-        }
-
-        #[cfg(target_arch = "wasm32")]
-        {
-            wasm_bindgen_futures::spawn_local(async move {
-                info!("Fetching weather data at ({lat}, {lon})");
-
-                let response = F::fetch_weather(lat, lon).await;
-                if let Err(err) = sender.send(response) {
-                    error!("{err}");
-                }
-            });
+        cfg_if::cfg_if! {
+            if #[cfg(target_arch = "wasm32")] {
+                wasm_bindgen_futures::spawn_local(async move {
+                    let response = F::fetch_weather(lat, lon).await;
+                    if let Err(err) = sender.send(response) {
+                        error!("{err}");
+                    }
+                });
+            } else {
+                self.runtime.block_on(async {
+                    let response = F::fetch_weather(lat, lon).await;
+                    if let Err(err) = sender.send(response) {
+                        error!("{err}");
+                    }
+                });
+            }
         }
     }
 
