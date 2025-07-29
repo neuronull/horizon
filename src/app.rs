@@ -1,12 +1,13 @@
+use std::marker::PhantomData;
+
 use anyhow::{Context, Result};
 use eframe::Frame;
 use egui::Context as Ctx;
-use std::marker::PhantomData;
-use tokio::runtime::Handle;
-
-use tokio::runtime::Runtime;
-use tokio::sync::mpsc;
-use tokio::sync::watch::{Receiver, Sender};
+use tokio::runtime::{Handle, Runtime};
+use tokio::sync::{
+    mpsc,
+    watch::{Receiver, Sender},
+};
 use tracing::{error, info};
 
 use super::{LogsView, WeatherView};
