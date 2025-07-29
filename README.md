@@ -21,7 +21,8 @@ The app supports both web and native desktop builds. Currently native desktop re
 ### Dependencies
 
 - Rust
-- Pirate Weather API key
+- Pirate Weather API key (free)
+- IP Geolocate API key (free)
 
 #### Installing Rust
 
@@ -31,12 +32,17 @@ https://www.rust-lang.org/tools/install
 
 https://pirate-weather.apiable.io/products/weather-data/Plans
 
+#### Obtaining IP Geolocate API key
+
+https://app.ipgeolocation.io/signup
 
 #### Build and run
 1. Clone or download the repo
 2. Execute the following command from the repository checkout directory
    ```
-   PIRATEWEATHER_API_KEY=<YOUR_API_KEY> cargo run
+   PIRATEWEATHER_API_KEY=<YOUR_API_KEY> \
+   IPLOCATE_API_KEY=<YOUR_API_KEY> \
+   cargo run
    ```
 
 ## Testing
