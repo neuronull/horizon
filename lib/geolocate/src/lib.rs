@@ -48,12 +48,12 @@ pub struct Currency {
 }
 
 pub async fn get_geo_location() -> Result<GeoResponse, Error> {
-    let api_key = env!("IPLOCATE_API_KEY");
-    let url = format!("{IPAPI_URL}?apiKey={api_key}");
-
     #[cfg(target_arch = "wasm32")]
     {
         use gloo_net::http::Request;
+
+        let api_key = env!("IPLOCATE_API_KEY");
+        let url = format!("{IPAPI_URL}?apiKey={api_key}");
 
         Ok(Request::get(&url)
             .send()
@@ -64,6 +64,8 @@ pub async fn get_geo_location() -> Result<GeoResponse, Error> {
 
     #[cfg(not(target_arch = "wasm32"))]
     {
+        let api_key = std::env::var("IPLOCATE_API_KEY")?;
+        let url = format!("{IPAPI_URL}?apiKey={api_key}");
         Ok(reqwest::get(url).await?.json::<GeoResponse>().await?)
     }
 }
