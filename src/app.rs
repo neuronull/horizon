@@ -2,10 +2,9 @@ use anyhow::{Context, Result};
 use eframe::Frame;
 use egui::Context as Ctx;
 use std::marker::PhantomData;
+use tokio::runtime::Handle;
 
-#[cfg(not(target_arch = "wasm32"))]
-use tokio::runtime::{Builder, Runtime};
-
+use tokio::runtime::Runtime;
 use tokio::sync::mpsc;
 use tokio::sync::watch::{Receiver, Sender};
 use tracing::{error, info};
@@ -33,8 +32,7 @@ where
 {
     sender: Sender<Result<D>>,
     receiver: Receiver<Result<D>>,
-    #[cfg(not(target_arch = "wasm32"))]
-    runtime: Runtime,
+    runtime: Option<Runtime>,
     state: AppState,
     /// Weather data
     pub data: D,
@@ -50,13 +48,7 @@ where
     ///
     /// Will panic if tokio runtime build fails
     #[must_use]
-    pub fn new(state: AppState) -> Self {
-        #[cfg(not(target_arch = "wasm32"))]
-        let runtime = Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .expect("Failed to build runtime");
-
+    pub fn new(state: AppState, runtime: Option<Runtime>) -> Self {
         let data = D::default();
         let (sender, receiver) = tokio::sync::watch::channel(Ok(D::default()));
 
@@ -65,7 +57,6 @@ where
         let mut controller = Self {
             sender,
             receiver,
-            #[cfg(not(target_arch = "wasm32"))]
             runtime,
             state,
             data,
@@ -108,7 +99,7 @@ where
                     }
                 });
             } else {
-                self.runtime.block_on(async {
+                self.runtime.as_ref().unwrap().block_on(async {
                     let response = F::fetch_weather(lat, lon).await;
                     if let Err(err) = sender.send(response) {
                         error!("{err}");
@@ -177,6 +168,25 @@ pub struct AppState {
 
 impl AppState {
     /// Called once before the first frame.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn new(logrx: mpsc::Receiver<String>, rt_handle: &Handle) -> Self {
+        // TODO: re-enable for feature to save state
+        // Load previous app state (if any).
+        // if let Some(storage) = cc.storage {
+        //     return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+        // }
+
+        Self {
+            weather_view_selected: true,
+            weather_view: WeatherView::new(rt_handle.clone()),
+            logs_view: LogsView::new(logrx),
+            active_view: View::default(),
+            log_view_selected: false,
+            fetch_state: FetchState::default(),
+        }
+    }
+
+    #[cfg(target_arch = "wasm32")]
     pub fn new(logrx: mpsc::Receiver<String>) -> Self {
         // TODO: re-enable for feature to save state
         // Load previous app state (if any).
@@ -254,6 +264,7 @@ mod test {
     use egui_kittest::kittest::Queryable;
     use egui_kittest::Harness;
     use lib_weather::PirateData;
+    use tokio::runtime::Builder;
 
     use super::*;
 
@@ -324,9 +335,14 @@ mod test {
     #[test]
     fn fetch_failure_marked_as_completed() {
         let (_logtx, logrx) = mpsc::channel::<String>(100);
-        let state = AppState::new(logrx);
+        let runtime = Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("Failed to build runtime");
+        let state = AppState::new(logrx, runtime.handle());
 
-        let initial_state = AppController::<PirateData, StubWeatherFails>::new(state);
+        let initial_state =
+            AppController::<PirateData, StubWeatherFails>::new(state, Some(runtime));
 
         let mut harness = Harness::new_state(
             |ctx, initial_state| {
@@ -347,8 +363,13 @@ mod test {
     #[test]
     fn fetch_success_marked_as_completed() {
         let (_logtx, logrx) = mpsc::channel::<String>(100);
-        let state = AppState::new(logrx);
-        let initial_state = AppController::<PirateData, StubWeatherSucceeds>::new(state);
+        let runtime = Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("Failed to build runtime");
+        let state = AppState::new(logrx, runtime.handle());
+        let initial_state =
+            AppController::<PirateData, StubWeatherSucceeds>::new(state, Some(runtime));
 
         let mut harness = Harness::new_state(
             |ctx, initial_state| {

@@ -15,8 +15,16 @@ fn init_logging() -> Receiver<String> {
 // native:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
+    use tokio::runtime::Builder;
+
     let logrx = init_logging();
-    let state = AppState::new(logrx);
+
+    let runtime = Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("Failed to build runtime");
+
+    let state = AppState::new(logrx, runtime.handle());
 
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_maximized(true),
@@ -28,6 +36,7 @@ fn main() -> eframe::Result {
         Box::new(|_cc| {
             Ok(Box::new(AppController::<PirateData, PirateWeather>::new(
                 state,
+                Some(runtime),
             )))
         }),
     )
@@ -61,7 +70,7 @@ fn main() {
                 web_options,
                 Box::new(|_cc| {
                     Ok(Box::new(AppController::<PirateData, PirateWeather>::new(
-                        state,
+                        state, None,
                     )))
                 }),
             )

@@ -21,6 +21,7 @@ members = [
 [workspace.dependencies]
 anyhow = "1.0"
 async-trait = "0.1.88"
+reqwest = { version = "0.12", features = ["json"] }
 serde = { version = "1.0.219", features = ["derive"] }
 tracing = { version = "0.1" }
 
@@ -28,6 +29,7 @@ tracing = { version = "0.1" }
 
 # internal
 lib-weather = { path = "lib/weather" }
+lib-geolocate = { path = "lib/geolocate" }
 
 # external
 chrono = { version = "0.4.41" }
@@ -43,17 +45,23 @@ eframe = { version = "0.32.0", default-features = false, features = [
     "wayland",       # To support Linux (and CI)
     "x11",           # To support older Linux distributions (restores one of the default features)
 ] }
-tokio = { version = "1.47.0", features = ["sync", "rt"] }
 time = { version = "0.3", features = ["formatting"] }
 tracing-subscriber = { version = "0.3", features = ["fmt", "chrono", "env-filter"] }
 
 # workspace
 anyhow.workspace = true
 serde.workspace = true
+reqwest.workspace = true
 tracing.workspace = true
+
+# native
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1.47.0", features = ["sync", "rt-multi-thread"] }
 
 # web
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+gloo-net = "0.6"
+tokio = { version = "1.47.0", features = ["sync", "rt"] }
 wasm-bindgen-futures = "0.4.50"
 web-sys = "0.3.70"              # to access the DOM (to hide the loading text)
 
