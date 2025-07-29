@@ -1522,7 +1522,10 @@ dependencies = [
  "egui_extras",
  "egui_kittest",
  "egui_plot",
+ "gloo-net",
+ "lib-geolocate",
  "lib-weather",
+ "reqwest",
  "serde",
  "time",
  "tokio",
@@ -1907,6 +1910,17 @@ name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
+
+[[package]]
+name = "lib-geolocate"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "gloo-net",
+ "reqwest",
+ "serde",
+ "tracing",
+]
 
 [[package]]
 name = "lib-weather"
@@ -3140,9 +3154,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.140"
+version = "1.0.141"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20068b6e96dc6c9bd23e01df8827e6c7e1f2fddd43c21810382803c136b99373"
+checksum = "30b9eff21ebe718216c6ec64e1d9ac57087aad11efc64e32002bce4a0d4c03d3"
 dependencies = [
  "itoa",
  "memchr",

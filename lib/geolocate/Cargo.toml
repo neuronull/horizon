@@ -1,5 +1,5 @@
 [package]
-name = "lib-weather"
+name = "lib-geolocate"
 version = "0.1.0"
 authors = ["neuronull"]
 edition = "2021"
@@ -8,7 +8,6 @@ publish = false
 
 [dependencies]
 anyhow.workspace = true
-async-trait.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 tracing.workspace = true
