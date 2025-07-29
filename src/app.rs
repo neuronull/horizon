@@ -168,8 +168,7 @@ pub struct AppState {
 
 impl AppState {
     /// Called once before the first frame.
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn new(logrx: mpsc::Receiver<String>, rt_handle: &Handle) -> Self {
+    pub fn new(logrx: mpsc::Receiver<String>, rt_handle: Option<&Handle>) -> Self {
         // TODO: re-enable for feature to save state
         // Load previous app state (if any).
         // if let Some(storage) = cc.storage {
@@ -178,25 +177,7 @@ impl AppState {
 
         Self {
             weather_view_selected: true,
-            weather_view: WeatherView::new(rt_handle.clone()),
-            logs_view: LogsView::new(logrx),
-            active_view: View::default(),
-            log_view_selected: false,
-            fetch_state: FetchState::default(),
-        }
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn new(logrx: mpsc::Receiver<String>) -> Self {
-        // TODO: re-enable for feature to save state
-        // Load previous app state (if any).
-        // if let Some(storage) = cc.storage {
-        //     return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        // }
-
-        Self {
-            weather_view_selected: true,
-            weather_view: WeatherView::new(),
+            weather_view: WeatherView::new(rt_handle.cloned()),
             logs_view: LogsView::new(logrx),
             active_view: View::default(),
             log_view_selected: false,
