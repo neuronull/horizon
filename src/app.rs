@@ -314,18 +314,22 @@ mod test {
         }
     }
 
-    #[test]
-    fn fetch_failure_marked_as_completed() {
+    fn setup<T: lib_weather::WeatherFetch<Output = PirateData>>() -> AppController<PirateData, T> {
         let (_logtx, logrx) = mpsc::channel::<String>(100);
         let runtime = Builder::new_current_thread()
             .enable_all()
             .build()
             .expect("Failed to build runtime");
-        let state = AppState::new(logrx, runtime.handle());
+        let state = AppState::new(logrx, Some(runtime.handle()));
 
-        let initial_state =
-            AppController::<PirateData, StubWeatherFails>::new(state, Some(runtime));
+        AppController::<PirateData, T>::new(state, Some(runtime))
+    }
 
+    fn fetch_mark_completed<D, F>(initial_state: AppController<D, F>)
+    where
+        D: WeatherData + Default + Sync + 'static,
+        F: WeatherFetch<Output = D>,
+    {
         let mut harness = Harness::new_state(
             |ctx, initial_state| {
                 initial_state.update(ctx);
@@ -343,29 +347,14 @@ mod test {
     }
 
     #[test]
+    fn fetch_failure_marked_as_completed() {
+        let initial_state = setup::<StubWeatherFails>();
+        fetch_mark_completed(initial_state);
+    }
+
+    #[test]
     fn fetch_success_marked_as_completed() {
-        let (_logtx, logrx) = mpsc::channel::<String>(100);
-        let runtime = Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .expect("Failed to build runtime");
-        let state = AppState::new(logrx, runtime.handle());
-        let initial_state =
-            AppController::<PirateData, StubWeatherSucceeds>::new(state, Some(runtime));
-
-        let mut harness = Harness::new_state(
-            |ctx, initial_state| {
-                initial_state.update(ctx);
-            },
-            initial_state,
-        );
-
-        harness.get_by_label("Latitude: ").type_text("1");
-        harness.get_by_label("Latitude: ").type_text("2");
-        harness.get_by_label("Fetch").click();
-
-        harness.run();
-
-        assert!(harness.state().state.fetch_state == FetchState::Completed);
+        let initial_state = setup::<StubWeatherSucceeds>();
+        fetch_mark_completed(initial_state);
     }
 }
