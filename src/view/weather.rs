@@ -27,27 +27,10 @@ pub struct WeatherView {
 
 impl WeatherView {
     #[must_use]
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn new(rt: Handle) -> Self {
+    pub fn new(rt: Option<Handle>) -> Self {
         let (sender, receiver) = watch::channel(Ok(GeoResponse::default()));
         Self {
-            rt: Some(rt),
-            widgets: Widgets::new(),
-            open_widgets: BTreeSet::new(),
-            latitude_str: String::from(A51_LAT),
-            longitude_str: String::from(A51_LON),
-            location_error_modal_open: false,
-            sender,
-            receiver,
-        }
-    }
-
-    #[must_use]
-    #[cfg(target_arch = "wasm32")]
-    pub fn new() -> Self {
-        let (sender, receiver) = watch::channel(Ok(GeoResponse::default()));
-        Self {
-            rt: None,
+            rt,
             widgets: Widgets::new(),
             open_widgets: BTreeSet::new(),
             latitude_str: String::from(A51_LAT),

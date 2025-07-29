@@ -24,7 +24,7 @@ fn main() -> eframe::Result {
         .build()
         .expect("Failed to build runtime");
 
-    let state = AppState::new(logrx, runtime.handle());
+    let state = AppState::new(logrx, Some(runtime.handle()));
 
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_maximized(true),
@@ -48,7 +48,7 @@ fn main() {
     use eframe::wasm_bindgen::JsCast as _;
 
     let logrx = init_logging();
-    let state = AppState::new(logrx);
+    let state = AppState::new(logrx, None);
 
     let web_options = eframe::WebOptions::default();
 
