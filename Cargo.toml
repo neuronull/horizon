@@ -43,7 +43,7 @@ eframe = { version = "0.32.0", default-features = false, features = [
     "wayland",       # To support Linux (and CI)
     "x11",           # To support older Linux distributions (restores one of the default features)
 ] }
-tokio = { version = "1.46.1", features = ["sync", "rt"] }
+tokio = { version = "1.47.0", features = ["sync", "rt"] }
 time = { version = "0.3", features = ["formatting"] }
 tracing-subscriber = { version = "0.3", features = ["fmt", "chrono", "env-filter"] }
 
