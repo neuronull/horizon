@@ -18,15 +18,17 @@ This document outlines planned features, improvements, and milestones.
 ## 🧭  Short term goals
 
 - [ ] Support more widgets for other weather data
-  - [ ] sun / moon
+  - [ ] sun
+  - [ ] moon
   - [ ] precipitation
   - [ ] wind
   - [ ] AQI
   - [ ] Alerts
-- [ ] Geolocation toggle
+- [x] Geolocation
+- [ ] Toggleable tooltips
 - [ ] Save state on app exit
 - [ ] Slider to view data (forecast mode)
-- [ ] GitHub Actions for auto-deploy
+- [x] GitHub Actions for auto-deploy
 
 ---
 
