@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use anyhow::Result;
-use egui::{Id, IntoAtoms, Label, Layout, Modal, ScrollArea, TextEdit, Ui};
+use egui::{Color32, Id, IntoAtoms, Label, Layout, Modal, ScrollArea, Sense, TextEdit, Ui, Vec2};
 use tokio::{
     runtime::Handle,
     sync::watch::{self, Receiver, Sender},
@@ -10,6 +10,13 @@ use tracing::{error, info};
 
 use crate::{FetchState, Widgets, A51_LAT, A51_LON};
 use lib_geolocate::{get_geo_location, GeoResponse};
+
+enum AsyncState {
+    Default,
+    InProress,
+    Succeeded,
+    Failed,
+}
 
 pub struct WeatherView {
     rt: Option<Handle>,
@@ -22,6 +29,7 @@ pub struct WeatherView {
     pub longitude_str: String,
     pub location_error_modal_open: bool,
     tooltips_enabled: bool,
+    geolocate_state: AsyncState,
     sender: Sender<Result<GeoResponse>>,
     receiver: Receiver<Result<GeoResponse>>,
 }
@@ -38,6 +46,7 @@ impl WeatherView {
             longitude_str: String::from(A51_LON),
             location_error_modal_open: false,
             tooltips_enabled: false,
+            geolocate_state: AsyncState::Default,
             sender,
             receiver,
         }
@@ -49,9 +58,11 @@ impl WeatherView {
                 Ok(geo) => {
                     self.latitude_str = geo.location.latitude.clone();
                     self.longitude_str = geo.location.longitude.clone();
+                    self.geolocate_state = AsyncState::Succeeded;
                 }
                 Err(err) => {
                     error!("{err}");
+                    self.geolocate_state = AsyncState::Failed;
                 }
             }
         }
@@ -97,6 +108,7 @@ impl WeatherView {
 
                 ui.end_row();
 
+
                 let mut geobutton = ui.button("Geolocate");
                 if self.tooltips_enabled {
                     geobutton = geobutton.on_hover_ui(|ui| {
@@ -106,6 +118,27 @@ impl WeatherView {
                 if geobutton.clicked() {
                     self.request_locate();
                 }
+
+                let r = 5.0;
+                let size = Vec2::splat(2.0 * r + 5.0);
+                match self.geolocate_state {
+                    AsyncState::Default => {
+                        ui.label("");
+                    },
+                    AsyncState::InProress => {
+                        ui.spinner();
+                    },
+                    AsyncState::Succeeded => {
+                        let (rect, _response) = ui.allocate_at_least(size, Sense::hover());
+                        ui.painter().circle_filled(rect.center(), r, Color32::LIGHT_GREEN);
+                    },
+                    AsyncState::Failed => {
+                        let (rect, _response) = ui.allocate_at_least(size, Sense::hover());
+                        ui.painter().circle_filled(rect.center(), r, ui.visuals().warn_fg_color);
+                    },
+                }
+
+                ui.end_row();
 
                 let mut fetchbutton = ui.button("Fetch");
                 if self.tooltips_enabled {
@@ -117,6 +150,13 @@ impl WeatherView {
                     *fetch_state = FetchState::Requested;
                 }
 
+                if *fetch_state == FetchState::Requested || *fetch_state == FetchState::InProgress {
+                    ui.spinner();
+                } else {
+                    let (rect, _response) = ui.allocate_at_least(size, Sense::hover());
+                    ui.painter().circle_filled(rect.center(), r, Color32::LIGHT_GREEN);
+                }
+
                 ui.end_row();
             });
 
@@ -126,6 +166,7 @@ impl WeatherView {
     fn request_locate(&mut self) {
         info!("Geolocating...");
         let sender = self.sender.clone();
+        self.geolocate_state = AsyncState::InProress;
 
         cfg_if::cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
