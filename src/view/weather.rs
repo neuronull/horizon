@@ -100,7 +100,7 @@ impl WeatherView {
                 let mut geobutton = ui.button("Geolocate");
                 if self.tooltips_enabled {
                     geobutton = geobutton.on_hover_ui(|ui| {
-                        ui.label("Click to obtain weather data from your current location.");
+                        ui.label("Click to resolve latitude and longitude from your current location.");
                     });
                 }
                 if geobutton.clicked() {
@@ -110,7 +110,7 @@ impl WeatherView {
                 let mut fetchbutton = ui.button("Fetch");
                 if self.tooltips_enabled {
                     fetchbutton = fetchbutton.on_hover_ui(|ui| {
-                        ui.label("Click to obtain weather data from the provided latitude and longitude.");
+                        ui.label("Click to obtain weather data from the selected latitude and longitude.");
                     });
                 }
                 if fetchbutton.clicked() && *fetch_state == FetchState::Completed {
