@@ -11,6 +11,7 @@ use tracing::{error, info};
 use crate::{FetchState, Widgets, A51_LAT, A51_LON};
 use lib_geolocate::{get_geo_location, GeoResponse};
 
+#[derive(PartialEq)]
 enum AsyncState {
     Default,
     InProress,
@@ -30,6 +31,7 @@ pub struct WeatherView {
     pub location_error_modal_open: bool,
     tooltips_enabled: bool,
     geolocate_state: AsyncState,
+    geolocate_result: GeoResponse,
     sender: Sender<Result<GeoResponse>>,
     receiver: Receiver<Result<GeoResponse>>,
 }
@@ -47,6 +49,7 @@ impl WeatherView {
             location_error_modal_open: false,
             tooltips_enabled: false,
             geolocate_state: AsyncState::Default,
+            geolocate_result: GeoResponse::default(),
             sender,
             receiver,
         }
@@ -58,6 +61,7 @@ impl WeatherView {
                 Ok(geo) => {
                     self.latitude_str = geo.location.latitude.clone();
                     self.longitude_str = geo.location.longitude.clone();
+                    self.geolocate_result = geo.clone();
                     self.geolocate_state = AsyncState::Succeeded;
                 }
                 Err(err) => {
@@ -116,7 +120,15 @@ impl WeatherView {
                     });
                 }
                 if geobutton.clicked() {
-                    self.request_locate();
+                    if self.geolocate_state != AsyncState::InProress && self.geolocate_state != AsyncState::Succeeded {
+                        self.request_locate();
+                    }
+                    if self.latitude_str != self.geolocate_result.location.latitude {
+                        self.latitude_str.clone_from(&self.geolocate_result.location.latitude);
+                    }
+                    if self.longitude_str != self.geolocate_result.location.longitude {
+                        self.longitude_str.clone_from(&self.geolocate_result.location.longitude);
+                    }
                 }
 
                 let r = 5.0;

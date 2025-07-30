@@ -3,7 +3,7 @@ use serde::Deserialize;
 
 const IPAPI_URL: &str = "https://api.ipgeolocation.io/v2/ipgeo";
 
-#[derive(Default, Debug, Deserialize)]
+#[derive(Default, Debug, Deserialize, Clone)]
 pub struct GeoResponse {
     pub ip: String,
     pub location: Location,
@@ -11,7 +11,7 @@ pub struct GeoResponse {
     pub currency: Currency,
 }
 
-#[derive(Default, Debug, Deserialize)]
+#[derive(Default, Debug, Deserialize, Clone)]
 pub struct Location {
     pub continent_code: String,
     pub continent_name: String,
@@ -33,14 +33,14 @@ pub struct Location {
     pub country_emoji: String,
 }
 
-#[derive(Default, Debug, Deserialize)]
+#[derive(Default, Debug, Deserialize, Clone)]
 pub struct CountryMetadata {
     pub calling_code: String,
     pub tld: String,
     pub languages: Vec<String>,
 }
 
-#[derive(Default, Debug, Deserialize)]
+#[derive(Default, Debug, Deserialize, Clone)]
 pub struct Currency {
     pub code: String,
     pub name: String,
