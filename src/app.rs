@@ -169,6 +169,7 @@ pub struct AppState {
 
 impl AppState {
     /// Called once before the first frame.
+    #[must_use]
     pub fn new(logrx: mpsc::Receiver<String>, rt_handle: Option<&Handle>) -> Self {
         // TODO: re-enable for feature to save state
         // Load previous app state (if any).
@@ -187,6 +188,10 @@ impl AppState {
     }
 
     fn update(&mut self, ctx: &Ctx) {
+        // ensures the cached logs are up to date before the actual log view is selected
+        // in the UI so that re-painting of the logs view doesn't lag behind.
+        self.logs_view.check_logs();
+
         egui::CentralPanel::default().show(ctx, |ui| {
             // Top menu bar
             egui::TopBottomPanel::top("menu_bar").show(ui.ctx(), |ui| {

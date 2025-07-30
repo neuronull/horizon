@@ -19,10 +19,10 @@ impl LogsView {
         }
     }
 
-    pub fn update(&mut self, ui: &Ui) {
-        // check for new logs and if found, append them to stored logs
-        // the update loop runs with enough frequency and our expected
-        // throughput is low enough that checking once each call is more than enough.
+    // check for new logs and if found, append them to stored logs
+    // the update loop runs with enough frequency and our expected
+    // throughput is low enough that checking once each call is more than enough.
+    pub fn check_logs(&mut self) {
         match self.rx.try_recv() {
             Ok(log) => {
                 self.logs_display.push_str(&log);
@@ -31,7 +31,9 @@ impl LogsView {
             Err(TryRecvError::Empty) => {}
             Err(e) => error!("Logs sender disconnected: {e}"),
         }
+    }
 
+    pub fn update(&mut self, ui: &Ui) {
         egui::CentralPanel::default().show(ui.ctx(), |ui| {
             // TODO improvements: highlighting on log syntax, colored differently for log levels
             let language = "rs";
