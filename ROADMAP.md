@@ -25,7 +25,7 @@ This document outlines planned features, improvements, and milestones.
   - [ ] AQI
   - [ ] Alerts
 - [x] Geolocation
-- [ ] Toggleable tooltips
+- [x] Toggleable tooltips
 - [ ] Save state on app exit
 - [ ] Slider to view data (forecast mode)
 - [x] GitHub Actions for auto-deploy
