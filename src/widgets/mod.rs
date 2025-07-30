@@ -20,6 +20,9 @@ trait Widget {
     /// Name of the widget
     fn name(&self) -> &'static str;
 
+    /// Hover text to use if tooltips are enabled.
+    fn hover_text(&self, open: bool) -> String;
+
     /// Render the widget visible
     fn show(&mut self, ctx: &Context, open: &mut bool);
 
@@ -45,11 +48,16 @@ impl Widgets {
         }
     }
 
-    pub fn checkboxes(&mut self, ui: &mut Ui, open: &mut BTreeSet<String>) {
+    pub fn checkboxes(&mut self, ui: &mut Ui, open: &mut BTreeSet<String>, tooltips_enabled: bool) {
         for widget in self.widgets.as_mut_slice() {
             if widget.is_enabled(ui.ctx()) {
                 let mut is_open = open.contains(widget.name());
-                ui.toggle_value(&mut is_open, widget.name());
+                let value = ui.toggle_value(&mut is_open, widget.name());
+                if tooltips_enabled {
+                    value.on_hover_ui(|ui| {
+                        ui.label(widget.hover_text(is_open));
+                    });
+                }
                 set_open(open, widget.name(), is_open);
             }
         }

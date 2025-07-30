@@ -18,6 +18,13 @@ impl Widget for SunMoon {
         "sun & moon"
     }
 
+    fn hover_text(&self, open: bool) -> String {
+        format!(
+            "Click to {} Sun and moon data.",
+            if open { "hide" } else { "display" }
+        )
+    }
+
     fn show(&mut self, ctx: &Context, open: &mut bool) {
         Window::new(self.name())
             .open(open)

@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use anyhow::Result;
-use egui::{Id, Label, Layout, Modal, ScrollArea, TextEdit, Ui};
+use egui::{Id, IntoAtoms, Label, Layout, Modal, ScrollArea, TextEdit, Ui};
 use tokio::{
     runtime::Handle,
     sync::watch::{self, Receiver, Sender},
@@ -21,6 +21,7 @@ pub struct WeatherView {
     /// location longitude
     pub longitude_str: String,
     pub location_error_modal_open: bool,
+    tooltips_enabled: bool,
     sender: Sender<Result<GeoResponse>>,
     receiver: Receiver<Result<GeoResponse>>,
 }
@@ -36,6 +37,7 @@ impl WeatherView {
             latitude_str: String::from(A51_LAT),
             longitude_str: String::from(A51_LON),
             location_error_modal_open: false,
+            tooltips_enabled: false,
             sender,
             receiver,
         }
@@ -45,8 +47,8 @@ impl WeatherView {
         if let Ok(true) = self.receiver.has_changed() {
             match &*self.receiver.borrow_and_update() {
                 Ok(geo) => {
-                    self.latitude_str = geo.location.latitude.to_owned();
-                    self.longitude_str = geo.location.longitude.to_owned();
+                    self.latitude_str = geo.location.latitude.clone();
+                    self.longitude_str = geo.location.longitude.clone();
                 }
                 Err(err) => {
                     error!("{err}");
@@ -95,12 +97,26 @@ impl WeatherView {
 
                 ui.end_row();
 
-                if ui.button("Geolocate").clicked() {
+                let mut geobutton = ui.button("Geolocate");
+                if self.tooltips_enabled {
+                    geobutton = geobutton.on_hover_ui(|ui| {
+                        ui.label("Click to obtain weather data from your current location.");
+                    });
+                }
+                if geobutton.clicked() {
                     self.request_locate();
                 }
-                if ui.button("Fetch").clicked() && *fetch_state == FetchState::Completed {
+
+                let mut fetchbutton = ui.button("Fetch");
+                if self.tooltips_enabled {
+                    fetchbutton = fetchbutton.on_hover_ui(|ui| {
+                        ui.label("Click to obtain weather data from the provided latitude and longitude.");
+                    });
+                }
+                if fetchbutton.clicked() && *fetch_state == FetchState::Completed {
                     *fetch_state = FetchState::Requested;
                 }
+
                 ui.end_row();
             });
 
@@ -158,14 +174,36 @@ impl WeatherView {
 
             ScrollArea::vertical().show(ui, |ui| {
                 ui.with_layout(Layout::top_down_justified(egui::Align::LEFT), |ui| {
-                    self.widgets.checkboxes(ui, &mut self.open_widgets);
+                    self.widgets
+                        .checkboxes(ui, &mut self.open_widgets, self.tooltips_enabled);
                 });
             });
         });
         ui.separator();
 
-        if ui.button("Organize widgets").clicked() {
+        let mut organize = ui.button("Organize widgets");
+        if self.tooltips_enabled {
+            organize = organize.on_hover_ui(|ui| {
+                ui.label("Click to automatically neatly arrange open widgets.");
+            });
+        }
+
+        if organize.clicked() {
             ui.ctx().memory_mut(egui::Memory::reset_areas);
         }
+        ui.toggle_value(
+            &mut self.tooltips_enabled,
+            ("Tooltips enabled").into_atoms(),
+        )
+        .on_hover_ui(|ui| {
+            ui.label(format!(
+                "Click to {} tooltips.",
+                if self.tooltips_enabled {
+                    "disable"
+                } else {
+                    "enable"
+                }
+            ));
+        });
     }
 }
