@@ -1,5 +1,6 @@
 use std::io::{self, Write};
 use tokio::sync::mpsc::Sender;
+use tracing::error;
 use tracing_subscriber::fmt::{self, MakeWriter};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::EnvFilter;
@@ -15,7 +16,12 @@ impl Write for Logs {
 
         if !s.trim().is_empty() {
             // TODO check result
-            self.tx.try_send(s.to_string());
+            if let Err(e) = self.tx.try_send(s.to_string()) {
+                let msg = format!("Error sending log to subscriber: {e}");
+                error!(msg);
+                // we are consuming the tracing errors here so as a fallback:
+                println!("{msg}");
+            }
         }
         Ok(buf.len())
     }
