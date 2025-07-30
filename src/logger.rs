@@ -15,7 +15,6 @@ impl Write for Logs {
         let s = std::str::from_utf8(buf).unwrap_or_default();
 
         if !s.trim().is_empty() {
-            // TODO check result
             if let Err(e) = self.tx.try_send(s.to_string()) {
                 let msg = format!("Error sending log to subscriber: {e}");
                 error!(msg);
