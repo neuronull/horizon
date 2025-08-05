@@ -56,7 +56,7 @@ tracing.workspace = true
 
 # native
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "1.47.0", features = ["sync", "rt-multi-thread"] }
+tokio = { version = "1.47.1", features = ["sync", "rt-multi-thread"] }
 
 # web
 [target.'cfg(target_arch = "wasm32")'.dependencies]
