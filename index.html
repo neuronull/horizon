@@ -12,8 +12,8 @@
     <!-- config for our rust wasm binary. go to https://trunkrs.dev/assrts/#rust for more customization -->
     
 <script type="module">
-import init, * as bindings from '/horizon/horizon-ef4352057b71cb45.js';
-const wasm = await init({ module_or_path: '/horizon/horizon-ef4352057b71cb45_bg.wasm' });
+import init, * as bindings from '/horizon/horizon-2b619016779a3b09.js';
+const wasm = await init({ module_or_path: '/horizon/horizon-2b619016779a3b09_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -127,7 +127,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             }
         }
     </style>
-<link rel="modulepreload" href="/horizon/horizon-ef4352057b71cb45.js" crossorigin="anonymous" integrity="sha384-4rF6adW7++d1iVEBx7a/RZ/+r6eE9zquigoOpo3TRk/1ariBp4u5TM3kqJ8/A55j"><link rel="preload" href="/horizon/horizon-ef4352057b71cb45_bg.wasm" crossorigin="anonymous" integrity="sha384-wk0giQmFd39D1byG7UWE1G6BCjcRZjjZAviv1jRu4UgEQTd67GQjrExvdtf1x5Yq" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/horizon/horizon-2b619016779a3b09.js" crossorigin="anonymous" integrity="sha384-ijflBSbDsvdk5bSVcyo0J6GI0N4jU4NDW01JTTpayh0CEynXQFiGqRpcywBd/+F7"><link rel="preload" href="/horizon/horizon-2b619016779a3b09_bg.wasm" crossorigin="anonymous" integrity="sha384-rpapfxo4Bmp3iWSvqV/4mxQyVytrvxDfkFDJxdaucZ/6Lwe8Lmue9kDfG+yCHGcF" as="fetch" type="application/wasm"></head>
 
 <body>
     <!-- The WASM code will resize the canvas dynamically -->
